@@ -8,13 +8,13 @@ def connect_db():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        port=3306,  # đổi nếu port MySQL khác
-        password="123456",  # đổi nếu password MySQL khác
-        database="quanlybenhnhan"  # phải trùng với database đã tạo
+        port=3306,
+        password="123456",  # sửa nếu cần
+        database="quanlybenhnhan"
     )
 
 # ====== Canh giữa cửa sổ ======
-def center_window(win, w=800, h=500):
+def center_window(win, w=900, h=550):
     ws = win.winfo_screenwidth()
     hs = win.winfo_screenheight()
     x = (ws // 2) - (w // 2)
@@ -36,15 +36,15 @@ frame_info.pack(pady=5, padx=10, fill="x")
 
 tk.Label(frame_info, text="Mã BN").grid(row=0, column=0, padx=5, pady=5, sticky="w")
 entry_ma = tk.Entry(frame_info, width=10)
-entry_ma.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+entry_ma.grid(row=0, column=1, padx=5, pady=5)
 
 tk.Label(frame_info, text="Họ BN").grid(row=0, column=2, padx=5, pady=5, sticky="w")
-entry_hobn = tk.Entry(frame_info, width=25)
-entry_hobn.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+entry_hobn = tk.Entry(frame_info, width=20)
+entry_hobn.grid(row=0, column=3, padx=5, pady=5)
 
 tk.Label(frame_info, text="Tên BN").grid(row=0, column=4, padx=5, pady=5, sticky="w")
 entry_tenbn = tk.Entry(frame_info, width=15)
-entry_tenbn.grid(row=0, column=5, padx=5, pady=5, sticky="w")
+entry_tenbn.grid(row=0, column=5, padx=5, pady=5)
 
 tk.Label(frame_info, text="Giới tính").grid(row=1, column=0, padx=5, pady=5, sticky="w")
 gender_var = tk.StringVar(value="Nam")
@@ -55,24 +55,34 @@ tk.Label(frame_info, text="Ngày sinh").grid(row=1, column=2, padx=5, pady=5, st
 date_entry = DateEntry(frame_info, width=12, background="darkblue", foreground="white", date_pattern="yyyy-mm-dd")
 date_entry.grid(row=1, column=3, padx=5, pady=5, sticky="w")
 
-tk.Label(frame_info, text="Địa chỉ").grid(row=1, column=4, padx=5, pady=5, sticky="w")
-entry_diachi = tk.Entry(frame_info, width=25)
-entry_diachi.grid(row=1, column=5, padx=5, pady=5, sticky="w")
+tk.Label(frame_info, text="Tuổi").grid(row=1, column=4, padx=5, pady=5, sticky="w")
+entry_tuoi = tk.Entry(frame_info, width=10)
+entry_tuoi.grid(row=1, column=5, padx=5, pady=5)
+
+tk.Label(frame_info, text="SĐT").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+entry_sdt = tk.Entry(frame_info, width=15)
+entry_sdt.grid(row=2, column=1, padx=5, pady=5)
+
+tk.Label(frame_info, text="Địa chỉ").grid(row=2, column=2, padx=5, pady=5, sticky="w")
+entry_diachi = tk.Entry(frame_info, width=40)
+entry_diachi.grid(row=2, column=3, columnspan=3, padx=5, pady=5, sticky="w")
 
 # ====== Bảng danh sách ======
-columns = ("MaBN", "HoBN", "TenBN", "GioiTinh", "NgaySinh", "DiaChi")
+columns = ("MaBN", "HoBN", "TenBN", "GioiTinh", "TuoiBN", "SDTBN", "NgaySinh", "DiaChi")
 tree = ttk.Treeview(root, columns=columns, show="headings", height=10)
 tree.pack(padx=10, pady=10, fill="both")
 
 for col in columns:
     tree.heading(col, text=col)
-    tree.column(col, width=120)
+    tree.column(col, width=110)
 
 # ====== Chức năng ======
 def clear_input():
     entry_ma.delete(0, tk.END)
     entry_hobn.delete(0, tk.END)
     entry_tenbn.delete(0, tk.END)
+    entry_tuoi.delete(0, tk.END)
+    entry_sdt.delete(0, tk.END)
     entry_diachi.delete(0, tk.END)
     gender_var.set("Nam")
     date_entry.set_date("2000-01-01")
@@ -92,6 +102,8 @@ def them_bn():
     ho = entry_hobn.get()
     ten = entry_tenbn.get()
     gt = gender_var.get()
+    tuoi = entry_tuoi.get()
+    sdt = entry_sdt.get()
     ns = date_entry.get()
     dc = entry_diachi.get()
 
@@ -102,11 +114,10 @@ def them_bn():
     try:
         conn = connect_db()
         cur = conn.cursor()
-        # 🔧 SỬA LỖI Ở DÒNG DƯỚI: ghi rõ tên cột trong INSERT
         cur.execute("""
-            INSERT INTO benhnhan (MaBN, HoBN, TenBN, GioiTinh, NgaySinh, DiaChi)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (ma, ho, ten, gt, ns, dc))
+            INSERT INTO benhnhan (MaBN, HoBN, TenBN, GioiTinh, TuoiBN, SDTBN, NgaySinh, DiaChi)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (ma, ho, ten, gt, tuoi or None, sdt, ns, dc))
         conn.commit()
         conn.close()
         load_data()
@@ -141,15 +152,21 @@ def sua_bn():
     entry_tenbn.delete(0, tk.END)
     entry_tenbn.insert(0, values[2])
     gender_var.set(values[3])
-    date_entry.set_date(values[4])
+    entry_tuoi.delete(0, tk.END)
+    entry_tuoi.insert(0, values[4])
+    entry_sdt.delete(0, tk.END)
+    entry_sdt.insert(0, values[5])
+    date_entry.set_date(values[6])
     entry_diachi.delete(0, tk.END)
-    entry_diachi.insert(0, values[5])
+    entry_diachi.insert(0, values[7])
 
 def luu_bn():
     ma = entry_ma.get()
     ho = entry_hobn.get()
     ten = entry_tenbn.get()
     gt = gender_var.get()
+    tuoi = entry_tuoi.get()
+    sdt = entry_sdt.get()
     ns = date_entry.get()
     dc = entry_diachi.get()
 
@@ -157,9 +174,9 @@ def luu_bn():
     cur = conn.cursor()
     cur.execute("""
         UPDATE benhnhan 
-        SET HoBN=%s, TenBN=%s, GioiTinh=%s, NgaySinh=%s, DiaChi=%s 
+        SET HoBN=%s, TenBN=%s, GioiTinh=%s, TuoiBN=%s, SDTBN=%s, NgaySinh=%s, DiaChi=%s 
         WHERE MaBN=%s
-    """, (ho, ten, gt, ns, dc, ma))
+    """, (ho, ten, gt, tuoi or None, sdt, ns, dc, ma))
     conn.commit()
     conn.close()
     load_data()
