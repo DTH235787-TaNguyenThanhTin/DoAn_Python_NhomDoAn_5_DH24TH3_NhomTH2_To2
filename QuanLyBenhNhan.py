@@ -35,8 +35,8 @@ frame_info = tk.LabelFrame(root, text="Thông tin bệnh nhân", font=("Arial", 
 frame_info.pack(pady=5, padx=10, fill="x")
 
 tk.Label(frame_info, text="Mã BN").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-entry_ma = tk.Entry(frame_info, width=10)
-entry_ma.grid(row=0, column=1, padx=5, pady=5)
+entry_mabn = tk.Entry(frame_info, width=10)
+entry_mabn.grid(row=0, column=1, padx=5, pady=5)
 
 tk.Label(frame_info, text="Họ BN").grid(row=0, column=2, padx=5, pady=5, sticky="w")
 entry_hobn = tk.Entry(frame_info, width=20)
@@ -68,6 +68,9 @@ entry_diachi = tk.Entry(frame_info, width=40)
 entry_diachi.grid(row=2, column=3, columnspan=3, padx=5, pady=5, sticky="w")
 
 # ====== Bảng danh sách ======
+lbl_ds = tk.Label(root, text="DANH SÁCH BỆNH NHÂN", font=("Arial", 12, "bold"), fg="blue")
+lbl_ds.pack(pady=5)
+
 columns = ("MaBN", "HoBN", "TenBN", "GioiTinh", "TuoiBN", "SDTBN", "NgaySinh", "DiaChi")
 tree = ttk.Treeview(root, columns=columns, show="headings", height=10)
 tree.pack(padx=10, pady=10, fill="both")
@@ -78,7 +81,7 @@ for col in columns:
 
 # ====== Chức năng ======
 def clear_input():
-    entry_ma.delete(0, tk.END)
+    entry_mabn.delete(0, tk.END)
     entry_hobn.delete(0, tk.END)
     entry_tenbn.delete(0, tk.END)
     entry_tuoi.delete(0, tk.END)
@@ -98,7 +101,7 @@ def load_data():
     conn.close()
 
 def them_bn():
-    ma = entry_ma.get()
+    ma = entry_mabn.get()
     ho = entry_hobn.get()
     ten = entry_tenbn.get()
     gt = gender_var.get()
@@ -145,8 +148,8 @@ def sua_bn():
         messagebox.showwarning("Chưa chọn", "Hãy chọn bệnh nhân để sửa.")
         return
     values = tree.item(selected)["values"]
-    entry_ma.delete(0, tk.END)
-    entry_ma.insert(0, values[0])
+    entry_mabn.delete(0, tk.END)
+    entry_mabn.insert(0, values[0])
     entry_hobn.delete(0, tk.END)
     entry_hobn.insert(0, values[1])
     entry_tenbn.delete(0, tk.END)
@@ -161,7 +164,7 @@ def sua_bn():
     entry_diachi.insert(0, values[7])
 
 def luu_bn():
-    ma = entry_ma.get()
+    ma = entry_mabn.get()
     ho = entry_hobn.get()
     ten = entry_tenbn.get()
     gt = gender_var.get()
