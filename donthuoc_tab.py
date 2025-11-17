@@ -392,9 +392,9 @@ def create_view(parent_tab, donthuoc_data, benhnhan_data, nhanvien_data):
     # =====================================
     
     # Đặt độ rộng và căn lề
-    tree.column("MaDT", width=100, anchor="w") 
-    tree.column("MaBN", width=100, anchor="w")
-    tree.column("MaNV", width=100, anchor="w")
+    tree.column("MaDT", width=100, anchor="c") 
+    tree.column("MaBN", width=100, anchor="c")
+    tree.column("MaNV", width=100, anchor="c")
     tree.column("NgayLap", width=100, anchor="c") 
     # === THAY ĐỔI: Xóa cột Ghi Chú ===
     # tree.column("GhiChu", width=200, anchor="w")
@@ -408,22 +408,22 @@ def create_view(parent_tab, donthuoc_data, benhnhan_data, nhanvien_data):
     button_frame.pack(pady=10, fill="x")
 
     btn_them = ttk.Button(button_frame, text="Thêm", command=on_add)
-    btn_them.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_them.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit)
-    btn_sua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_sua.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save)
-    btn_luu.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_luu.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete)
-    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_xoa.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_entries)
-    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_boqua.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_thoat.pack(side=tk.CENTER, padx=5, expand=True)
 
     # --- Khởi tạo ---
     # 1. Tải danh sách BN/NV vào combobox

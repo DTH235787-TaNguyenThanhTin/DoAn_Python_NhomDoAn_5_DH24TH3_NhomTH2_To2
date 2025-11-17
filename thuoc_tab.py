@@ -274,15 +274,15 @@ def create_view(parent_tab, data_list):
     form_frame.pack(fill="x", expand=False, padx=10, pady=10) # fill="x" co giãn theo chiều ngang
 
     # sticky="w" (west) để căn lề trái
-    ttk.Label(form_frame, text="Mã Thuốc:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+    ttk.Label(form_frame, text="Mã Thuốc:").grid(row=0, column=0, padx=5, pady=5, sticky="c")
     entry_mathuoc = ttk.Entry(form_frame, width=40)
     entry_mathuoc.grid(row=0, column=1, padx=5, pady=5)
 
-    ttk.Label(form_frame, text="Tên Thuốc:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+    ttk.Label(form_frame, text="Tên Thuốc:").grid(row=1, column=0, padx=5, pady=5, sticky="c")
     entry_tenthuoc = ttk.Entry(form_frame, width=40)
     entry_tenthuoc.grid(row=1, column=1, padx=5, pady=5)
     
-    ttk.Label(form_frame, text="Đơn vị tính:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+    ttk.Label(form_frame, text="Đơn vị tính:").grid(row=2, column=0, padx=5, pady=5, sticky="c")
     entry_dvt = ttk.Entry(form_frame, width=40)
     entry_dvt.grid(row=2, column=1, padx=5, pady=5)
     
@@ -310,9 +310,9 @@ def create_view(parent_tab, data_list):
     tree.heading("TenThuoc", text="Tên Thuốc")
     tree.heading("DonViTinh", text="Đơn Vị Tính")
     # Đặt độ rộng và căn lề
-    tree.column("MaThuoc", width=100, anchor="w") # anchor "w" (west) là căn trái
-    tree.column("TenThuoc", width=300, anchor="w")
-    tree.column("DonViTinh", width=100, anchor="w")
+    tree.column("MaThuoc", width=100, anchor="c") # anchor "c" (center) cho mã
+    tree.column("TenThuoc", width=300, anchor="c")
+    tree.column("DonViTinh", width=100, anchor="c")
 
     tree.pack(fill="both", expand=True)
     # Gán sự kiện: khi click vào 1 hàng (select), gọi hàm on_item_select
@@ -325,23 +325,23 @@ def create_view(parent_tab, data_list):
     # Các nút chức năng
     # expand=True để các nút tự chia đều không gian
     btn_them = ttk.Button(button_frame, text="Thêm", command=on_add)
-    btn_them.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_them.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit)
-    btn_sua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_sua.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save)
-    btn_luu.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_luu.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete)
-    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_xoa.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_entries)
-    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_boqua.pack(side=tk.CENTER, padx=5, expand=True)
     
     # Nút Thoát: winfo_toplevel().destroy() để đóng toàn bộ cửa sổ chính
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_thoat.pack(side=tk.CENTER, padx=5, expand=True)
 
     # --- Khởi tạo ---
     # 1. Tải dữ liệu từ cache lên Treeview khi mở tab

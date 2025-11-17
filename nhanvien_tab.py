@@ -425,13 +425,13 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
     tree.heading("MaCV", text="Mã CV")
     
     # Đặt độ rộng và căn lề
-    tree.column("MaNV", width=80, anchor="w") # anchor "w" (west) là căn trái
-    tree.column("HoTen", width=150, anchor="w")
+    tree.column("MaNV", width=80, anchor="c") # anchor "c" (center) cho mã
+    tree.column("HoTen", width=150, anchor="c")
     tree.column("Tuoi", width=50, anchor="c") # anchor "c" (center) là căn giữa
     tree.column("GioiTinh", width=60, anchor="c")
-    tree.column("SDT", width=100, anchor="w")
-    tree.column("MaKhoa", width=80, anchor="w")
-    tree.column("MaCV", width=80, anchor="w")
+    tree.column("SDT", width=100, anchor="C")
+    tree.column("MaKhoa", width=80, anchor="c")
+    tree.column("MaCV", width=80, anchor="c")
 
     tree.pack(fill="both", expand=True)
     # Gán sự kiện: khi click vào 1 hàng (select), gọi hàm on_item_select
@@ -443,23 +443,23 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
 
     # Các nút chức năng
     btn_them = ttk.Button(button_frame, text="Thêm", command=on_add)
-    btn_them.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_them.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit)
-    btn_sua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_sua.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save)
-    btn_luu.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_luu.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete)
-    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_xoa.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_entries)
-    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_boqua.pack(side=tk.CENTER, padx=5, expand=True)
     
     
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_thoat.pack(side=tk.CENTER, padx=5, expand=True)
 
     # --- Khởi tạo ---
     # 1. Tải danh sách vào combobox

@@ -599,22 +599,22 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
 
     # (Các nút này chỉ điều khiển form chi tiết)
     btn_them = ttk.Button(button_frame, text="Thêm", command=on_add_detail)
-    btn_them.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_them.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit_detail)
-    btn_sua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_sua.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save_detail)
-    btn_luu.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_luu.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete_detail)
-    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_xoa.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_detail_form)
-    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_boqua.pack(side=tk.CENTER, padx=5, expand=True)
     
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_thoat.pack(side=tk.CENTER, padx=5, expand=True)
 
     # --- Khởi tạo khi mở tab ---
     # 1. Tải dữ liệu vào các combobox

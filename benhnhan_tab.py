@@ -1,434 +1,431 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-from tkcalendar import DateEntry # <-- Import lịch
-import datetime # <-- Import để xử lý ngày
-# --- Import CSDL ---
-from db_connect import connect_db
+from tkinter import ttk, messagebox
+# from tkcalendar import DateEntry # Dù không dùng nhưng vẫn giữ lại
 import mysql.connector
+import customtkinter
+# Import các hàm và module tùy chỉnh của bạn (Giả định các file này đã tồn tại)
+try:
+    # Cần đảm bảo các file này tồn tại trong môi trường chạy của bạn
+    from db_connect import connect_db, center_window
+    import nhanvien_tab
+    import benhnhan_tab
+    import khoa_tab
+    import chucvu_tab
+    import macbenh_tab
+    import thuoc_tab
+    import donthuoc_tab
+    import chitietdonthuoc_tab
+except ImportError as e:
+    messagebox.showerror("Lỗi Import", f"Không thể import một module cần thiết.\nLỗi: {e}")
+    # Nếu chạy trong môi trường có thể dừng, bạn nên dùng exit()
+    # exit() 
 
-def create_view(parent_tab, benhnhan_data, macbenh_data):
-    #Tạo giao diện cho tab Quản lý Bệnh nhân Sử dụng benhnhan_data và macbenh_data (để làm combobox)
-    # --- Biến nội bộ ---
-    current_mode = None 
-    selected_item_id = None 
-    # === THAY ĐỔI: Quay lại dùng BooleanVar cho checkbox ===
-    # Biến đặc biệt của Tkinter để theo dõi trạng thái (True/False) của checkbox
-    # Mặc định là False (Nữ)
-    var_is_male = tk.BooleanVar(value=False) 
+# ===== CÁC HÀM HỖ TRỢ CHO HIỆU ỨNG ĐỘNG MÀU SẮC (Giữ nguyên) =====
 
-    # --- Hàm xử lý ComboBox ---
-    def update_mabenh_combobox():
-        #Cập nhật danh sách bệnh cho ComboBox 'Mắc bệnh'."""
-        mabenh_display_list = [f"{b['MaBenh']} - {b['LoaiBenh']}" for b in macbenh_data]
-        combo_mabenh['values'] = mabenh_display_list
+def hex_to_rgb(hex_color):
+    """Chuyển đổi màu hex (#RRGGBB) sang tuple RGB."""
+    if not hex_color.startswith('#') or len(hex_color) != 7: # Định dạng không hợp lệ
+        return 0, 0, 0 
+    hex_color = hex_color.lstrip('#') # Loại bỏ ký tự '#' ở đầu chuỗi
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4)) # Chuyển đổi từng phần R, G, B
 
-    # --- Các hàm xử lý (nội bộ) ---
-    def refresh_tree():
-        #Làm mới Treeview, tải lại toàn bộ dữ liệu từ benhnhan_data."""
-        for item in tree.get_children():
-            tree.delete(item)
+def rgb_to_hex(rgb): # rgb là tuple (R, G, B)
+    """Chuyển đổi tuple RGB sang màu hex (#RRGGBB)."""
+    return '#%02x%02x%02x' % (int(rgb[0]), int(rgb[1]), int(rgb[2])) # Đảm bảo giá trị là int
+
+# ===== LỚP NÚT BẤM CÓ GÓC BO TRÒN VÀ HIỆU ỨNG ĐỘNG (ShapeButton Cải Tiến) =====
+class ShapeButton(tk.Frame):
+    def __init__(self, parent, text, command, width, height, radius=10,
+                 bg_color="#3498DB", fg_color="white", hover_color="#2980B9"): # Mặc định màu xanh dương
         
-        for bn in benhnhan_data:
-            ngay_sinh_display = bn['NgaySinh'].strftime('%Y-%m-%d') if isinstance(bn['NgaySinh'], datetime.date) else bn['NgaySinh']
+        super().__init__(parent, width=width, height=height) # Khởi tạo Frame cha
+        self.pack_propagate(False) # Không cho phép Frame tự động thay đổi kích thước
+        self.config(bg=parent.cget('bg'))  # Đặt màu nền Frame trùng với cha để ẩn viền
+
+        self.command = command # Lệnh khi nút được bấm
+        self.bg_color = bg_color      # Màu nền ban đầu
+        self.hover_color = hover_color  # Màu nền khi hover
+        self.fg_color = fg_color    # Màu chữ
+        self.radius = radius      # Bán kính bo góc
+        self.width = width     # Chiều rộng nút
+        self.height = height     # Chiều cao nút
+        
+        self.current_color = bg_color   # Màu hiện tại của nút
+        self.animation_id = None        # ID để quản lý và hủy animation
+        self.shape_ids = []      # Danh sách IDs của các phần hình dạng trên canvas
+        
+        self.canvas = tk.Canvas(self, width=width, height=height, 
+                                bg=parent.cget('bg'), highlightthickness=0) # Tạo canvas
+        self.canvas.pack(fill="both", expand=True) # Đặt canvas chiếm toàn bộ Frame
+        self.bind("<Configure>", self._on_resize) # Bắt sự kiện resize Frame
+        
+        # Text ID được tạo trước
+        self.text_id = self.canvas.create_text(
+            width/2, height/2, text=text, fill=self.fg_color, 
+            font=("Times New Roman", 12, "bold")
+        ) # Tạo text trên canvas
+
+        # Vẽ nút bo tròn lần đầu
+        self.shape_ids = self._draw_rounded_rectangle(self.bg_color)
+        
+        # Liên kết sự kiện với tất cả các thành phần của nút (hình dạng và văn bản)
+        self._bind_events(self.shape_ids)
+        self._bind_events(self.text_id)
+
+    def _animate_color_transition(self, target_color, duration=150, steps=10): # Thời gian tổng cộng 150ms, chia thành 10 bước
+        """Tạo hiệu ứng chuyển màu mượt mà."""
+        
+        # Hủy animation cũ nếu đang chạy
+        if self.animation_id:
+            self.after_cancel(self.animation_id)  # Hủy animation cũ nếu đang chạy
+
+        start_rgb = hex_to_rgb(self.current_color) # Màu hiện tại
+        target_rgb = hex_to_rgb(target_color) # Màu đích
+        
+        # Tính toán bước nhảy màu cho mỗi kênh RGB
+        step_r = (target_rgb[0] - start_rgb[0]) / steps # Bước thay đổi đỏ
+        step_g = (target_rgb[1] - start_rgb[1]) / steps # Bước thay đổi xanh lá
+        step_b = (target_rgb[2] - start_rgb[2]) / steps # Bước thay đổi xanh dương
+        
+        step_ms = duration // steps # Thời gian mỗi bước
+
+        # Hàm đệ quy để thực hiện từng bước chuyển màu
+        def step(current_step, current_rgb_float):
+            # Nếu đã hết bước hoặc target bị thay đổi nhanh chóng, kết thúc
+            if current_step >= steps:               # Hoặc đã đạt đến bước cuối
+                self.current_color = target_color   # Cập nhật màu hiện tại
+                self._set_color(target_color)       # Đặt màu đích cuối cùng
+                self.animation_id = None            # Xóa ID animation khi kết thúc
+                return 
+
+            # Tính toán màu tiếp theo (dùng float để tăng độ chính xác)
+            next_r_float = current_rgb_float[0] + step_r    # Bước tiếp theo cho đỏ
+            next_g_float = current_rgb_float[1] + step_g    # Bước tiếp theo cho xanh lá
+            next_b_float = current_rgb_float[2] + step_b    # Bước tiếp theo cho xanh dương
             
-            tree.insert("", tk.END, iid=bn['MaBN'], values=(
-                bn['MaBN'], bn['HoTenBN'], bn['GioiTinhBN'], bn['TuoiBN'],
-                bn['SDTBN'], ngay_sinh_display, bn['DiaChiBN'], bn['MaBenh']
-            ))
+            # Chuyển sang int và giới hạn trong khoảng 0-255
+            next_rgb_int = (
+                max(0, min(255, int(next_r_float))),   # Giới hạn đỏ
+                max(0, min(255, int(next_g_float))),   # Giới hạn xanh lá
+                max(0, min(255, int(next_b_float)))    # Giới hạn xanh dương
+            )
             
-    def set_form_state(state):
-        #Kích hoạt (enable) hoặc vô hiệu hóa (disable) các ô nhập liệu."""
-        pk_state = 'disabled'
-        other_state = 'disabled'
+            next_color_hex = rgb_to_hex(next_rgb_int)   # Chuyển sang hex
+            self._set_color(next_color_hex)             # Cập nhật màu nút
+            self.current_color = next_color_hex         # Cập nhật màu hiện tại
 
-        if state == 'add':
-            pk_state = 'normal'
-            other_state = 'normal'
-        elif state == 'edit':
-            pk_state = 'disabled' 
-            other_state = 'normal'
-        elif state == 'normal': 
-            pk_state = 'normal'
-            other_state = 'normal'
-        
-        entry_mabn.config(state=pk_state)
-        entry_hoten.config(state=other_state)
-        entry_tuoi.config(state=other_state)
-        entry_sdt.config(state=other_state)
-        entry_diachi.config(state=other_state)
-        
-        widget_state = 'normal' if other_state == 'normal' else 'disabled'
-        
-        # === THAY ĐỔI: Áp dụng cho Checkbox Giới tính ===
-        chk_gioitinh.config(state=widget_state)
-        # ===============================================
-        
-        combo_mabenh.config(state='readonly' if widget_state == 'normal' else 'disabled')
-        cal_ngaysinh.config(state=widget_state)
-        
-    def set_button_state(state):
-        #Kích hoạt (enable) hoặc vô hiệu hóa (disable) các nút chức năng."""
-        btn_them.config(state='normal' if state == 'idle' else 'disabled')
-        btn_sua.config(state='normal' if state == 'selected' else 'disabled')
-        btn_luu.config(state='normal' if state == 'add' or state == 'edit' else 'disabled')
-        btn_xoa.config(state='normal' if state == 'selected' else 'disabled')
-        btn_boqua.config(state='normal' if state == 'add' or state == 'edit' else 'disabled')
+            # Lên lịch cho bước tiếp theo
+            self.animation_id = self.after(step_ms, lambda: step(current_step + 1, (next_r_float, next_g_float, next_b_float))) 
 
-    def clear_entries():
-        #Xóa trắng các ô nhập liệu và reset trạng thái về 'idle'."""
-        nonlocal current_mode, selected_item_id
-        current_mode = None
-        selected_item_id = None
-        
-        set_form_state('normal') 
-        
-        entry_mabn.delete(0, tk.END)
-        entry_hoten.delete(0, tk.END)
-        entry_tuoi.delete(0, tk.END)
-        entry_sdt.delete(0, tk.END)
-        entry_diachi.delete(0, tk.END)
-        
-        # === THAY ĐỔI: Reset Checkbox ===
-        var_is_male.set(False) # Đặt về Nữ (bỏ tích)
-        # ==================================
-        
-        combo_mabenh.set("")
-        cal_ngaysinh.set_date(datetime.date.today()) 
-        
-        set_form_state('disabled') 
-        set_button_state('idle')
-        
-        if tree.selection():
-            tree.selection_remove(tree.selection())
+        # Bắt đầu animation
+        start_rgb_float = (float(start_rgb[0]), float(start_rgb[1]), float(start_rgb[2])) # Dùng float để tăng độ chính xác
+        step(0, start_rgb_float) # Bắt đầu từ bước 0
 
-    def on_add():
-        #
-        nonlocal current_mode
-        clear_entries() 
-        current_mode = 'add' 
-        set_form_state('add') 
-        set_button_state('add') 
-        entry_mabn.focus() 
-
-    def on_edit():
-        #Hàm xử lý khi nhấn nút 'Sửa'
-        nonlocal current_mode
-        if not selected_item_id:
-            messagebox.showwarning("Lỗi", "Vui lòng chọn một Bệnh nhân để sửa.")
-            return
+    def _draw_rounded_rectangle(self, color):
+        """Vẽ hình chữ nhật bo tròn trên canvas và trả về danh sách các ID hình dạng."""
         
-        current_mode = 'edit' 
-        set_form_state('edit') 
-        set_button_state('edit') 
-        entry_hoten.focus() 
-
-    def get_ma_from_display(display_text):
-        # Hàm trợ giúp: Tách Mã Bệnh từ chuỗi hiển thị
-        if not display_text: return None 
-        return display_text.split(" - ")[0]
-
-    def on_save():
-        #Hàm xử lý khi nhấn nút 'Lưu' (cho cả Thêm và Sửa).
-        nonlocal current_mode, selected_item_id
+        w, h, r = self.width, self.height, self.radius
         
-        ma_bn = entry_mabn.get().strip()
-        ho_ten = entry_hoten.get().strip()
-        tuoi_str = entry_tuoi.get().strip()
-        sdt = entry_sdt.get().strip()
-        diachi = entry_diachi.get().strip()
-        
-        # === THAY ĐỔI: Lấy giá trị từ Checkbox ===
-        # var_is_male.get() trả về True nếu được tích, False nếu không
-        gioitinh = "Nam" if var_is_male.get() else "Nữ"
-        # ==========================================
-        
-        # Kiểm tra dữ liệu (giới tính luôn có giá trị 'Nam' hoặc 'Nữ' nên không cần kiểm tra)
-        if not all([ma_bn, ho_ten, tuoi_str, sdt, diachi]):
-            messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập tất cả các trường (trừ Mã Bệnh).")
-            return
+        if r > w/2: r = w/2
+        if r > h/2: r = h/2
 
-        try:
-            tuoi_bn = int(tuoi_str) 
-            ngay_sinh = cal_ngaysinh.get_date() 
-            ma_benh = get_ma_from_display(combo_mabenh.get()) 
-            
-            new_data_dict = {
-                'MaBN': ma_bn,
-                'HoTenBN': ho_ten,
-                'GioiTinhBN': gioitinh, # Đã lấy từ checkbox
-                'TuoiBN': tuoi_bn,
-                'SDTBN': sdt,
-                'NgaySinh': ngay_sinh,
-                'DiaChiBN': diachi,
-                'MaBenh': ma_benh
-            }
-            
-            conn = connect_db()
-            cursor = conn.cursor()
+        # 1. Xóa hình cũ nếu có (Quan trọng cho việc resize)
+        for shape_id in self.shape_ids:
+            self.canvas.delete(shape_id)
 
-            if current_mode == 'add':
-                if any(item['MaBN'] == ma_bn for item in benhnhan_data):
-                    messagebox.showerror("Lỗi", "Mã Bệnh nhân này đã tồn tại.")
-                    conn.close()
-                    return
-                
-                sql = """
-                    INSERT INTO benhnhan (MaBN, HoTenBN, GioiTinhBN, TuoiBN, SDTBN, NgaySinh, DiaChiBN, MaBenh)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                cursor.execute(sql, (ma_bn, ho_ten, gioitinh, tuoi_bn, sdt, ngay_sinh, diachi, ma_benh))
-                
-                benhnhan_data.append(new_data_dict)
-                messagebox.showinfo("Thành công", f"Đã thêm Bệnh nhân: {ma_bn}")
-            
-            elif current_mode == 'edit':
-                sql = """
-                    UPDATE benhnhan SET 
-                    HoTenBN=%s, GioiTinhBN=%s, TuoiBN=%s, SDTBN=%s, NgaySinh=%s, DiaChiBN=%s, MaBenh=%s
-                    WHERE MaBN=%s
-                """
-                cursor.execute(sql, (ho_ten, gioitinh, tuoi_bn, sdt, ngay_sinh, diachi, ma_benh, selected_item_id))
-                
-                for i, item in enumerate(benhnhan_data):
-                    if item['MaBN'] == selected_item_id:
-                        new_data_dict['MaBN'] = selected_item_id 
-                        benhnhan_data[i] = new_data_dict
-                        break
-                messagebox.showinfo("Thành công", f"Đã cập nhật Bệnh nhân: {selected_item_id}")
+        # Tọa độ cơ sở
+        x1, y1 = 0, 0
+        x2, y2 = w, h
+        
+        new_shape_ids = []
+        
+        # 1. Vẽ hai hình chữ nhật chính (một ngang, một dọc)
+        new_shape_ids.append(self.canvas.create_rectangle(x1 + r, y1, x2 - r, y2, fill=color, outline=color))
+        new_shape_ids.append(self.canvas.create_rectangle(x1, y1 + r, x2, y2 - r, fill=color, outline=color))
 
-            conn.commit()
-            
-        except mysql.connector.Error as e:
-            messagebox.showerror("Lỗi CSDL", f"Lỗi khi lưu dữ liệu:\n{e}")
-        except ValueError:
-            messagebox.showerror("Lỗi Nhập liệu", "Tuổi BN phải là một con số.")
-        finally:
-            if 'conn' in locals() and conn.is_connected():
-                cursor.close()
-                conn.close()
-            
-        refresh_tree()
-        clear_entries()
+        # 2. Vẽ 4 góc bo tròn bằng hình bầu dục (oval)
+        new_shape_ids.append(self.canvas.create_oval(x1, y1, x1 + 2*r, y1 + 2*r, fill=color, outline=color)) # Top-CENTER
+        new_shape_ids.append(self.canvas.create_oval(x2 - 2*r, y1, x2, y1 + 2*r, fill=color, outline=color)) # Top-right
+        new_shape_ids.append(self.canvas.create_oval(x1, y2 - 2*r, x1 + 2*r, y2, fill=color, outline=color)) # Bottom-CENTER
+        new_shape_ids.append(self.canvas.create_oval(x2 - 2*r, y2 - 2*r, x2, y2, fill=color, outline=color)) # Bottom-right
+        
+        # Đảm bảo văn bản luôn được đưa lên lớp trên cùng sau khi vẽ tất cả các hình nền.
+        self.canvas.tag_raise(self.text_id)
 
-    def on_delete():
-        #Hàm xử lý khi nhấn nút 'Xóa'."""
-        if not selected_item_id:
-            messagebox.showwarning("Chưa chọn", "Vui lòng chọn một Bệnh nhân từ danh sách để Xóa.")
-            return
-        
-        if not messagebox.askyesno("Xác nhận", f"Bạn có chắc muốn xóa Bệnh nhân {selected_item_id}?"):
-            return
+        return new_shape_ids
 
-        try:
-            conn = connect_db()
-            cursor = conn.cursor()
-            
-            sql_delete = "DELETE FROM benhnhan WHERE MaBN = %s"
-            cursor.execute(sql_delete, (selected_item_id,))
-            conn.commit()
-            
-            item_to_remove = None
-            for item in benhnhan_data:
-                if item['MaBN'] == selected_item_id:
-                    item_to_remove = item
-                    break
-            if item_to_remove:
-                benhnhan_data.remove(item_to_remove)
-                
-            messagebox.showinfo("Thành công", "Đã xóa Bệnh nhân.")
-            
-        except mysql.connector.Error as e:
-            messagebox.showerror("Lỗi CSDL", f"Lỗi khi xóa dữ liệu:\n{e}")
-        finally:
-            if 'conn' in locals() and conn.is_connected():
-                cursor.close()
-                conn.close()
-                
-        refresh_tree()
-        clear_entries()
-
-    def find_display_by_ma(ma, data_list, key_ma, key_ten):
-        # Hàm trợ giúp: Tìm chuỗi hiển thị từ mã
-        for item in data_list:
-            if item[key_ma] == ma:
-                return f"{item[key_ma]} - {item[key_ten]}"
-        return "" 
-
-    def on_item_select(event):
-        # Hàm xử lý khi chọn một mục trong Treeview
-        nonlocal selected_item_id
-        
-        selected_items = tree.selection()
-        if not selected_items:
-            clear_entries()
-            return
-        
-        item_id = selected_items[0]
-        
-        item_data_dict = None
-        for item in benhnhan_data:
-            if item['MaBN'] == item_id:
-                item_data_dict = item
-                break
-        
-        if not item_data_dict: return 
-
-        set_form_state('normal') 
-        
-        entry_mabn.delete(0, tk.END)
-        entry_hoten.delete(0, tk.END)
-        entry_tuoi.delete(0, tk.END)
-        entry_sdt.delete(0, tk.END)
-        entry_diachi.delete(0, tk.END)
-
-        entry_mabn.insert(0, item_data_dict['MaBN'])
-        entry_hoten.insert(0, item_data_dict['HoTenBN'])
-        entry_tuoi.insert(0, item_data_dict['TuoiBN'])
-        entry_sdt.insert(0, item_data_dict['SDTBN'])
-        entry_diachi.insert(0, item_data_dict['DiaChiBN'])
-        
-        # === THAY ĐỔI: Đặt giá trị Checkbox ===
-        # Nếu 'GioiTinhBN' trong dữ liệu là "Nam" -> .set(True) (tích)
-        # Nếu là "Nữ" (hoặc khác) -> .set(False) (bỏ tích)
-        var_is_male.set(item_data_dict['GioiTinhBN'] == "Nam")
-        # =======================================
-        
-        ngay_sinh = item_data_dict['NgaySinh']
-        if isinstance(ngay_sinh, (datetime.date, datetime.datetime)):
-            cal_ngaysinh.set_date(ngay_sinh)
-        elif isinstance(ngay_sinh, str):
-            try:
-                cal_ngaysinh.set_date(datetime.datetime.strptime(ngay_sinh, '%Y-%m-%d').date())
-            except ValueError:
-                cal_ngaysinh.set_date(datetime.date.today()) 
+    def _bind_events(self, tags):
+        """Liên kết sự kiện cho các tag hoặc một ID đơn lẻ."""
+        if isinstance(tags, list):
+            for tag in tags:
+                self.canvas.tag_bind(tag, "<Button-1>", self._on_click)
+                self.canvas.tag_bind(tag, "<Enter>", self._on_enter)
+                self.canvas.tag_bind(tag, "<Leave>", self._on_leave)
         else:
-            cal_ngaysinh.set_date(datetime.date.today())
+            self.canvas.tag_bind(tags, "<Button-1>", self._on_click)
+            self.canvas.tag_bind(tags, "<Enter>", self._on_enter)
+            self.canvas.tag_bind(tags, "<Leave>", self._on_leave)
+
+
+    def _on_click(self, event):
+        if self.command: 
+            # Dừng animation hover
+            if self.animation_id:
+                self.after_cancel(self.animation_id)
+                self.animation_id = None
+            
+            # 1. Thực hiện lệnh
+            self.command() 
+            
+            # 2. Hiệu ứng Pulse (nhấp nháy màu tối hơn)
+            # Chọn màu tối hơn một chút so với màu hover
+            click_pulse_color = "#333333" if hex_to_rgb(self.hover_color)[0] > 100 else "#AAAAAA" 
+            
+            self._set_color(click_pulse_color)
+            self.current_color = click_pulse_color
+            self.update_idletasks()
+            
+            # 3. Trở lại trạng thái hover sau 100ms
+            self.after(100, lambda: self._animate_color_transition(self.hover_color)) 
+
+    def _on_enter(self, event):
+        self._animate_color_transition(self.hover_color) # Khi chuột vào, chuyển sang màu hover
+
+    def _on_leave(self, event):
+        self._animate_color_transition(self.bg_color) # Khi chuột rời, chuyển về màu gốc
         
-        mabenh_display = ""
-        if item_data_dict['MaBenh']:
-            mabenh_display = find_display_by_ma(item_data_dict['MaBenh'], macbenh_data, 'MaBenh', 'LoaiBenh')
-        combo_mabenh.set(mabenh_display)
-        
-        selected_item_id = item_data_dict['MaBN']
-        
-        set_form_state('disabled') 
-        set_button_state('selected') 
+    def _set_color(self, color):
+        """Đặt màu nền cho tất cả các hình dạng."""
+        for shape_id in self.shape_ids:
+            self.canvas.itemconfig(shape_id, fill=color, outline=color)# Cập nhật màu nền cho tất cả các phần của nút
 
-    # --- Tạo Form Nhập liệu (UI) ---
-    form_frame = ttk.LabelFrame(parent_tab, text="Thông tin Bệnh nhân")
-    form_frame.pack(fill="x", expand=False, padx=10, pady=10) 
+    def _on_resize(self, event):
+        # Cập nhật kích thước canvas, hình chữ nhật và vị trí text
+        try:
+            w = event.width
+            h = event.height
+            if w < 10 or h < 10: return 
 
-    # --- Cột 0 và 1 ---
-    ttk.Label(form_frame, text="Mã BN:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-    entry_mabn = ttk.Entry(form_frame, width=30)
-    entry_mabn.grid(row=0, column=1, padx=5, pady=5)
+            self.width = w
+            self.height = h
+            self.canvas.config(width=w, height=h)
+            
+            # Cập nhật vị trí Text
+            self.canvas.coords(self.text_id, w/2, h/2)
+            font_size = max(8, int(h * 0.35))
+            self.canvas.itemconfig(self.text_id, font=("Times New Roman", font_size, "bold"))
+            
+            # Vẽ lại nút bo tròn
+            old_ids = list(self.shape_ids) # Lưu IDs cũ để gỡ ràng buộc
+            self.shape_ids = self._draw_rounded_rectangle(self.bg_color)
+            self.current_color = self.bg_color # Reset màu sau khi resize
+            
+            # Gỡ ràng buộc khỏi IDs cũ (vì chúng đã bị xóa)
+            for shape_id in old_ids:
+                self.canvas.tag_unbind(shape_id, "<Button-1>")
+                self.canvas.tag_unbind(shape_id, "<Enter>")
+                self.canvas.tag_unbind(shape_id, "<Leave>")
+            
+            # Liên kết lại sự kiện cho IDs mới
+            self._bind_events(self.shape_ids)
 
-    ttk.Label(form_frame, text="Họ tên:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
-    entry_hoten = ttk.Entry(form_frame, width=30)
-    entry_hoten.grid(row=1, column=1, padx=5, pady=5)
+        except Exception as e:
+             print(f"Lỗi khi resize ShapeButton: {e}")
+             pass
+# ===== KẾT THÚC LỚP NÚT BẤM =====
 
+
+def open_main_window():
+    # --- 1. CÀI ĐẶT GIAO DIỆN VÀ THEME ---
+    root = tk.Tk()
+    root.title("Hệ Thống Quản Lý Bệnh Nhân")
     
-    ttk.Label(form_frame, text="Giới tính:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-    chk_gioitinh = ttk.Checkbutton(
-        form_frame,
-        text="Nam ", # Thêm khoảng trắng cho đẹp
-        variable=var_is_male, # Liên kết với biến BooleanVar
-        onvalue=True,         # Giá trị khi tích
-        offvalue=False        # Giá trị khi không tích
+    #  THAY ĐỔI: Áp dụng Theme Windows 
+    style = ttk.Style()
+    try:
+        if 'vista' in style.theme_names():
+            style.theme_use('vista')
+        elif 'clam' in style.theme_names():
+            style.theme_use('clam')
+        else:
+            style.theme_use('default')
+    except Exception:
+        pass
+
+    # Gọi hàm căn giữa với kích thước mới (từ db_connect.py)
+    center_window(root) 
+    root.resizable(True, True)
+    
+    # Thiết lập màu sắc (giữ nguyên cho các frame)
+    main_bg = "white"
+    sidebar_bg = "#EAF2F8"
+    root.config(bg=main_bg)
+    sidebar_text_color = "#343a40"
+    
+    # --- ĐỊNH NGHĨA MÀU SẮC CHO NÚT SIDEBAR ---
+    btn_bg_color = "#3498DB"      # Màu xanh dương
+    btn_hover_color = "#2980B9"   # Màu xanh dương đậm hơn
+    # --- END FIX ---
+
+    # ===== TẢI DỮ LIỆU TỪ MYSQL LÊN "CACHE" (ĐÃ KHÔI PHỤC) =====
+    # Khởi tạo tất cả các danh sách
+    khoa_data = []
+    chucvu_data = []
+    nhanvien_data = []
+    benhnhan_data = []
+    macbenh_data = []
+    thuoc_data = []
+    donthuoc_data = []
+    chitietdonthuoc_data = []
+    
+    try:
+        # --- KHÔI PHỤC KẾT NỐI CSDL ---
+        conn = connect_db()
+        cursor = conn.cursor(dictionary=True) # Rất quan trọng: để trả về dạng dict
+        
+        # Tải dữ liệu các bảng liên quan
+        cursor.execute("SELECT * FROM khoa")
+        khoa_data.extend(cursor.fetchall())
+        
+        cursor.execute("SELECT * FROM chucvu")
+        chucvu_data.extend(cursor.fetchall())
+        
+        cursor.execute("SELECT * FROM nhanvien")
+        nhanvien_data.extend(cursor.fetchall())
+        
+        cursor.execute("SELECT * FROM macbenh")
+        macbenh_data.extend(cursor.fetchall())
+        
+        cursor.execute("SELECT * FROM benhnhan")
+        benhnhan_data.extend(cursor.fetchall())
+        
+        cursor.execute("SELECT * FROM thuoc")
+        thuoc_data.extend(cursor.fetchall())
+        
+        cursor.execute("SELECT * FROM donthuoc")
+        donthuoc_data.extend(cursor.fetchall())
+        
+        
+        cursor.execute("SELECT * FROM chitietdonthuoc") # Tên bảng này đã đúng
+        chitietdonthuoc_data.extend(cursor.fetchall())
+        
+        
+        cursor.close()
+        conn.close()
+        messagebox.showinfo("Khởi động", "Đã tải dữ liệu từ CSDL thành công!")
+        
+    except mysql.connector.Error as e:
+        messagebox.showerror("Lỗi CSDL", f"Không thể tải dữ liệu khi khởi động.\nLỗi: {e}")
+        root.destroy()
+        return
+    # ==========================================
+
+    # --- 2. TẠO CÁC FRAME CHÍNH ---
+    frame_sidebar = tk.Frame(root, relief=tk.RIDGE, bd=2, padx=10, pady=10, bg=sidebar_bg) # Sidebar chính
+    frame_sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10) # Fill Y để chiếm toàn bộ chiều dọc
+    frame_sidebar.config(width=220) # Đặt chiều rộng cố định cho sidebar
+    frame_sidebar.pack_propagate(False) # Không cho phép tự động thay đổi kích thước
+
+    main_frame = tk.Frame(root, bg=main_bg)
+    main_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+
+    # --- 3. CÁC HÀM TRỢ GIÚP (Giữ nguyên) ---
+    def clear_main_frame():
+        for widget in main_frame.winfo_children():
+            widget.destroy()
+
+    def on_logout(): # Xử lý đăng xuất
+        if messagebox.askyesno("Đăng xuất", "Bạn có chắc muốn đăng xuất?"):
+            root.destroy()
+
+    def show_trangchu_view():
+        clear_main_frame()
+        # 🌟 THAY ĐỔI: Căn giữa nội dung Trang Chủ 🌟
+        tk.Label(main_frame, text="TRANG CHỦ",
+                 font=("Times New Roman", 32, "bold"),
+                 bg=main_bg, fg="#333").pack(pady=(150, 20)) # Thêm padding top lớn để căn giữa
+        tk.Label(main_frame, text="Chào mừng đến với Hệ thống Quản lý Bệnh nhân!",
+                 font=("Times New Roman", 22),
+                 bg=main_bg).pack() 
+
+    def show_benhnhan_view(): # Chức năng Bệnh Nhân
+        clear_main_frame()
+        benhnhan_tab.create_view(main_frame, benhnhan_data, macbenh_data)   # Chức năng Bệnh Nhân
+    
+    def show_nhanvien_view(): # Chức năng Nhân Viên
+        clear_main_frame()
+        nhanvien_tab.create_view(main_frame, nhanvien_data, khoa_data, chucvu_data) # Chức năng Nhân Viên
+
+    def show_khoa_view():   # Chức năng Khoa
+        clear_main_frame()
+        khoa_tab.create_view(main_frame, khoa_data) # Chức năng Khoa
+
+    def show_chucvu_view(): # Chức năng Chức vụ
+        clear_main_frame()
+        chucvu_tab.create_view(main_frame, chucvu_data) # Chức năng Chức vụ
+
+    def show_macbenh_view(): # Chức năng Mắc Bệnh
+        clear_main_frame()
+        macbenh_tab.create_view(main_frame, macbenh_data) # Chức năng Mắc Bệnh
+
+    def show_thuoc_view(): # Chức năng Thuốc
+        clear_main_frame()
+        thuoc_tab.create_view(main_frame, thuoc_data) # Chức năng Thuốc
+
+    def show_donthuoc_view(): # Chức năng Đơn Thuốc
+        clear_main_frame()
+        donthuoc_tab.create_view(main_frame, donthuoc_data, benhnhan_data, nhanvien_data) # Truyền dữ liệu cần thiết
+
+    def show_chitietdonthuoc_view(): # Chức năng Chi Tiết Đơn Thuốc
+        clear_main_frame()
+        chitietdonthuoc_tab.create_view( # Truyền tất cả dữ liệu cần thiết
+            main_frame, 
+            chitietdonthuoc_data, 
+            donthuoc_data, 
+            thuoc_data, 
+            benhnhan_data, 
+            nhanvien_data
+        )
+
+    # --- 5. TẠO CÁC NÚT CHO SIDEBAR (Giữ nguyên logic) ---
+    tk.Label(frame_sidebar, text="Menu Quản lý",
+             font=("Times New Roman", 18, "bold"),
+             bg=sidebar_bg, fg=sidebar_text_color).pack(pady=20, padx=10) # Tiêu đề sidebar
+
+    buttons_info = [ # Danh sách nút và hàm tương ứng
+        ("Trang chủ", show_trangchu_view),
+        ("Quản lý Bệnh nhân", show_benhnhan_view),
+        ("Quản lý Nhân Viên", show_nhanvien_view),
+        ("Quản lý Khoa", show_khoa_view),
+        ("Quản lý Chức vụ", show_chucvu_view),
+        ("Hồ sơ Mắc bệnh", show_macbenh_view),
+        ("Quản lý Thuốc", show_thuoc_view),
+        ("Quản lý Đơn thuốc", show_donthuoc_view),
+        ("Chi tiết Đơn thuốc", show_chitietdonthuoc_view)
+    ]
+    btn_width = 180
+    btn_height = 40
+
+    for text, command in buttons_info: # Tạo nút từ danh sách
+        btn = ShapeButton(
+            frame_sidebar, text=text, command=command, # Sử dụng ShapeButton
+            width=btn_width, height=btn_height, # Kích thước nút
+            bg_color=btn_bg_color, hover_color=btn_hover_color, # Màu nền và màu khi hover
+            radius=15 # Đặt bán kính bo góc
+        )
+        btn.pack(fill="x", pady=4, padx=10) # Khoảng cách giữa các nút
+
+    logout_btn = ShapeButton( 
+        frame_sidebar, text="Đăng xuất", command=on_logout, # Sử dụng ShapeButton
+        width=btn_width, height=btn_height, # Kích thước nút
+        bg_color="#E74C3C", hover_color="#C0392B", # Màu đỏ cho nút đăng xuất
+        radius=15
     )
-    chk_gioitinh.grid(row=2, column=1, padx=5, pady=5, sticky="w") # sticky="w" để căn trái
-    # ===============================================
+    logout_btn.pack(side="bottom", fill="x", pady=20, padx=10) # Nút đăng xuất ở dưới cùng với khoảng cách
 
-    ttk.Label(form_frame, text="Tuổi:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
-    entry_tuoi = ttk.Entry(form_frame, width=30)
-    entry_tuoi.grid(row=3, column=1, padx=5, pady=5)
-
-    # --- Cột 2 và 3 ---
-    ttk.Label(form_frame, text="SĐT:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
-    entry_sdt = ttk.Entry(form_frame, width=30)
-    entry_sdt.grid(row=0, column=3, padx=5, pady=5)
-    
-    ttk.Label(form_frame, text="Ngày sinh:").grid(row=1, column=2, padx=5, pady=5, sticky="w")
-    cal_ngaysinh = DateEntry(form_frame, width=28, date_pattern='yyyy-mm-d',
-                             background='darkblue', foreground='white', borderwidth=2)
-    cal_ngaysinh.grid(row=1, column=3, padx=5, pady=5)
-    
-    ttk.Label(form_frame, text="Địa chỉ:").grid(row=2, column=2, padx=5, pady=5, sticky="w")
-    entry_diachi = ttk.Entry(form_frame, width=30)
-    entry_diachi.grid(row=2, column=3, padx=5, pady=5)
-
-    ttk.Label(form_frame, text="Mắc bệnh:").grid(row=3, column=2, padx=5, pady=5, sticky="w")
-    combo_mabenh = ttk.Combobox(form_frame, width=28, state="readonly")
-    combo_mabenh.grid(row=3, column=3, padx=5, pady=5)
-    
-   
-
-    # --- Treeview (Bảng dữ liệu) ---
-    tree_frame = ttk.Frame(parent_tab)
-    tree_frame.pack(fill="both", expand=True, padx=10, pady=10) 
-    
-    tree_scroll_y = ttk.Scrollbar(tree_frame, orient="vertical")
-    tree_scroll_y.pack(side="right", fill="y")
-    tree_scroll_x = ttk.Scrollbar(tree_frame, orient="horizontal")
-    tree_scroll_x.pack(side="bottom", fill="x")
-
-    tree_cols = ("MaBN", "HoTen", "GioiTinh", "Tuoi", "SDT", "NgaySinh", "DiaChi", "MaBenh")
-    tree = ttk.Treeview(
-        tree_frame, columns=tree_cols, show="headings",
-        yscrollcommand=tree_scroll_y.set, 
-        xscrollcommand=tree_scroll_x.set  
-    )
-    tree_scroll_y.config(command=tree.yview)
-    tree_scroll_x.config(command=tree.xview)
-
-    tree.heading("MaBN", text="Mã BN")
-    tree.heading("HoTen", text="Họ Tên")
-    tree.heading("GioiTinh", text="Giới Tính")
-    tree.heading("Tuoi", text="Tuổi")
-    tree.heading("SDT", text="SĐT")
-    tree.heading("NgaySinh", text="Ngày Sinh")
-    tree.heading("DiaChi", text="Địa Chỉ")
-    tree.heading("MaBenh", text="Mã Bệnh")
-    
-    tree.column("MaBN", width=80, anchor="w") 
-    tree.column("HoTen", width=150, anchor="w")
-    tree.column("GioiTinh", width=60, anchor="c") 
-    tree.column("Tuoi", width=50, anchor="c")
-    tree.column("SDT", width=100, anchor="w")
-    tree.column("NgaySinh", width=100, anchor="c")
-    tree.column("DiaChi", width=200, anchor="w")
-    tree.column("MaBenh", width=80, anchor="w")
-
-    tree.pack(fill="both", expand=True)
-    tree.bind("<<TreeviewSelect>>", on_item_select)
-    
-    # --- Frame cho các nút chức năng (Thêm, Sửa, Xóa...) ---
-    button_frame = tk.Frame(parent_tab)
-    button_frame.pack(pady=10, fill="x")
-
-    btn_them = ttk.Button(button_frame, text="Thêm", command=on_add)
-    btn_them.pack(side=tk.LEFT, padx=5, expand=True)
-    
-    btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit)
-    btn_sua.pack(side=tk.LEFT, padx=5, expand=True)
-    
-    btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save)
-    btn_luu.pack(side=tk.LEFT, padx=5, expand=True)
-    
-    btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete)
-    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True)
-    
-    btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_entries)
-    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True)
-    
-    btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True)
-
-    # --- Khởi tạo khi mở tab ---
-    update_mabenh_combobox() 
-    combo_mabenh.set("") 
-    
-    refresh_tree() 
-    
-    clear_entries()
+    # --- 6. KIỂM TRA DB VÀ CHẠY ỨNG DỤNG ---
+    show_trangchu_view()
+    root.mainloop()
+# --- ĐIỂM KHỞI CHẠY CHÍNH CỦA ỨNG DỤNG ---
+if __name__ == "__main__":
+    open_main_window()
