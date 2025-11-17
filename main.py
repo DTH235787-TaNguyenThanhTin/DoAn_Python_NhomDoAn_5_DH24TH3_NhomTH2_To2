@@ -131,7 +131,10 @@ class ShapeButton(tk.Frame):
 
         # 1. Xóa hình cũ nếu có (Quan trọng cho việc resize)
         for shape_id in self.shape_ids:
-            self.canvas.delete(shape_id)
+            try:
+                self.canvas.delete(shape_id)
+            except tk.TclError:
+                pass # Bỏ qua lỗi nếu item đã bị xóa
 
         # Tọa độ cơ sở
         x1, y1 = 0, 0
@@ -197,8 +200,12 @@ class ShapeButton(tk.Frame):
     def _set_color(self, color):
         """Đặt màu nền cho tất cả các hình dạng."""
         for shape_id in self.shape_ids:
-            self.canvas.itemconfig(shape_id, fill=color, outline=color)
+            try:
+                self.canvas.itemconfig(shape_id, fill=color, outline=color)
+            except tk.TclError:
+                pass # Bỏ qua lỗi nếu item không tồn tại
 
+    # ===== HÀM ĐÃ SỬA LỖI =====
     def _on_resize(self, event):
         # Cập nhật kích thước canvas, hình chữ nhật và vị trí text
         try:
@@ -216,22 +223,30 @@ class ShapeButton(tk.Frame):
             self.canvas.itemconfig(self.text_id, font=("Times New Roman", font_size, "bold"))
             
             # Vẽ lại nút bo tròn
-            old_ids = list(self.shape_ids) # Lưu IDs cũ để gỡ ràng buộc
-            self.shape_ids = self._draw_rounded_rectangle(self.bg_color)
-            self.current_color = self.bg_color # Reset màu sau khi resize
+            # _draw_rounded_rectangle sẽ tự động xóa các ID cũ bên trong nó.
+            # Chúng ta vẽ lại với MÀU HIỆN TẠI (current_color) để giữ
+            # trạng thái (ví dụ: đang hover) khi resize.
+            self.shape_ids = self._draw_rounded_rectangle(self.current_color)
             
-            # Gỡ ràng buộc khỏi IDs cũ (vì chúng đã bị xóa)
-            for shape_id in old_ids:
-                self.canvas.tag_unbind(shape_id, "<Button-1>")
-                self.canvas.tag_unbind(shape_id, "<Enter>")
-                self.canvas.tag_unbind(shape_id, "<Leave>")
+            # Gỡ ràng buộc khỏi IDs cũ (ĐÃ BỊ XÓA)
+            # Dòng code cũ (bên dưới) gây ra lỗi "item X doesn't exist"
+            # vì các ID trong 'old_ids' đã bị xóa bởi _draw_rounded_rectangle.
+            # 
+            # for shape_id in old_ids:
+            #     self.canvas.tag_unbind(shape_id, "<Button-1>")
+            #     self.canvas.tag_unbind(shape_id, "<Enter>")
+            #     self.canvas.tag_unbind(shape_id, "<Leave>")
             
-            # Liên kết lại sự kiện cho IDs mới
+            # Liên kết lại sự kiện cho IDs MỚI
             self._bind_events(self.shape_ids)
+            
+            # Ràng buộc cho self.text_id (văn bản) vẫn còn nguyên
+            # vì nó không bao giờ bị xóa.
 
         except Exception as e:
-             print(f"Lỗi khi resize ShapeButton: {e}")
-             pass
+            # Bỏ qua lỗi nếu canvas/widget bị hủy trong quá trình resize nhanh
+            # print(f"Lỗi khi resize ShapeButton: {e}") # Bỏ comment nếu cần debug
+            pass
 # ===== KẾT THÚC LỚP NÚT BẤM =====
 
 

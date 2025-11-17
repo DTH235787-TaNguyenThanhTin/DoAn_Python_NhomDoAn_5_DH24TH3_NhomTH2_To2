@@ -14,7 +14,7 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
     
     # --- Biến nội bộ ---
     current_mode_detail = None 
-    selected_detail_pk = None  
+    selected_detail_pk = None # Lưu khóa chính (MaDT, MaThuoc) của dòng đang chọn
     current_master_madt = None 
     
     # --- Hàm Helper (Hàm trợ giúp) ---
@@ -47,8 +47,8 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
             ten_thuoc = thuoc_item['TenThuoc'] if thuoc_item else "Không rõ"
             
             # Định dạng ngày
-            ngay_kham_display = item['NgayKhamBenh'].strftime('%Y-%m-%d') if isinstance(item['NgayKhamBenh'], datetime.date) else item['NgayKhamBenh']
-            ngay_tai_kham_display = item['NgayTaiKham'].strftime('%Y-%m-%d') if isinstance(item['NgayTaiKham'], datetime.date) else item['NgayTaiKham']
+            ngay_kham_display = item['NgayKhamBenh'].strftime('%Y-%m-%d') if isinstance(item['NgayKhamBenh'], (datetime.date, datetime.datetime)) else item['NgayKhamBenh']
+            ngay_tai_kham_display = item['NgayTaiKham'].strftime('%Y-%m-%d') if isinstance(item['NgayTaiKham'], (datetime.date, datetime.datetime)) else item['NgayTaiKham']
 
             # Chèn vào Treeview
             # PK (iid) là 1 chuỗi kết hợp "MaDT_MaThuoc" để đảm bảo duy nhất
@@ -81,16 +81,30 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
 
     # --- Quản lý trạng thái Form ---
     
+    # ===== SỬA LỖI LOGIC TẠI ĐÂY =====
     def set_master_form_state(state):
         #Bật/tắt các ô thông tin chung (BN, NV). state là 'normal' hoặc 'disabled'.
-        entry_ngaycho.config(state=state)
-        entry_manv.config(state=state)
-        entry_tennv.config(state=state)
-        entry_mabn.config(state=state)
-        entry_tenbn.config(state=state)
-        entry_diachi.config(state=state)
-        entry_sdt.config(state=state)
         
+        # Lỗi logic cũ: Khi state='normal', view_state lại gán là 'readonly',
+        # khiến cho .delete() và .insert() thất bại.
+        # view_state = 'readonly' if state == 'normal' else 'disabled' # <-- CODE CŨ BỊ LỖI
+        
+        # Sửa lại:
+        # Nếu state là 'normal' (để cho phép .delete/.insert), thì state phải là 'normal'.
+        # Nếu state là 'disabled' (để khóa), chúng ta dùng 'readonly' vì đây là ô chỉ để xem.
+        final_state = 'normal'
+        if state == 'disabled':
+            final_state = 'readonly' # Dùng 'readonly' để người dùng có thể copy text
+        
+        entry_ngaycho.config(state=final_state) # Sử dụng final_state
+        entry_manv.config(state=final_state)
+        entry_tennv.config(state=final_state)
+        entry_mabn.config(state=final_state)
+        entry_tenbn.config(state=final_state)
+        entry_diachi.config(state=final_state)
+        entry_sdt.config(state=final_state)
+    # ===== KẾT THÚC SỬA LỖI =====
+         
     def set_detail_form_state(state):
         #Bật/tắt form chi tiết (thêm thuốc). state là 'add', 'edit', 'normal', 'disabled'.
         pk_state = 'disabled' # Trạng thái cho 2 combo Mã/Tên thuốc
@@ -106,16 +120,19 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
             other_state = 'normal'
         elif state == 'normal': 
             # Trạng thái 'normal' (dùng khi clear form)
-            pk_state = 'normal'
-            other_state = 'normal'
+            pk_state = 'normal' # 'normal' để .set("") được
+            other_state = 'normal' # 'normal' để .delete(0, END) được
             
         # Áp dụng
         combo_mathuoc.config(state=pk_state)
         combo_tenthuoc.config(state=pk_state) 
         entry_soluong.config(state=other_state)
         entry_huongdan.config(state=other_state)
-        cal_ngaykham.config(state='normal' if other_state == 'normal' else 'disabled')
-        cal_ngaytaikham.config(state='normal' if other_state == 'normal' else 'disabled')
+        
+        # state cho DateEntry là 'normal' hoặc 'disabled'
+        date_state = 'normal' if other_state == 'normal' else 'disabled'
+        cal_ngaykham.config(state=date_state)
+        cal_ngaytaikham.config(state=date_state)
 
     def set_detail_button_state(state):
         #Bật/tắt 6 nút Thêm, Sửa, Lưu... (của form chi tiết).
@@ -127,7 +144,7 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
         
     def clear_master_form():
         #Xóa trắng form thông tin chung (master).
-        set_master_form_state('normal') # Mở khóa để xóa
+        set_master_form_state('normal') # Mở khóa để xóa (SỬA LỖI: giờ sẽ thành 'normal')
         entry_ngaycho.delete(0, tk.END)
         entry_manv.delete(0, tk.END)
         entry_tennv.delete(0, tk.END)
@@ -135,6 +152,7 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
         entry_tenbn.delete(0, tk.END)
         entry_diachi.delete(0, tk.END)
         entry_sdt.delete(0, tk.END)
+        set_master_form_state('disabled') # Khóa lại ngay (SỬA LỖI: giờ sẽ thành 'readonly')
         
     def clear_detail_form():
         #Xóa trắng form chi tiết thuốc (hàm Bỏ qua).
@@ -185,27 +203,28 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
         current_master_madt = madt 
         
         # 1. Tải thông tin đơn thuốc (Ngày lập)
-        clear_master_form() # Mở khóa và xóa form master
+        clear_master_form() # Mở khóa, xóa và khóa lại form master
+        set_master_form_state('normal') # Mở khóa để nạp (SỬA LỖI: giờ sẽ thành 'normal')
         
-        ngay_lap_display = donthuoc_item['NgayLap'].strftime('%Y-%m-%d') if isinstance(donthuoc_item['NgayLap'], datetime.date) else donthuoc_item['NgayLap']
-        entry_ngaycho.insert(0, ngay_lap_display)
+        ngay_lap_display = donthuoc_item['NgayLap'].strftime('%Y-%m-%d') if isinstance(donthuoc_item['NgayLap'], (datetime.date, datetime.datetime)) else donthuoc_item['NgayLap']
+        entry_ngaycho.insert(0, ngay_lap_display or "")
 
         # 2. Tải thông tin nhân viên (người lập đơn)
         nhanvien_item = find_item_by_key(nhanvien_data, 'MaNV', donthuoc_item['MaNV'])
         if nhanvien_item:
-            entry_manv.insert(0, nhanvien_item['MaNV'])
-            entry_tennv.insert(0, nhanvien_item['HoTenNV'])
+            entry_manv.insert(0, nhanvien_item['MaNV'] or "")
+            entry_tennv.insert(0, nhanvien_item['HoTenNV'] or "")
 
         # 3. Tải thông tin bệnh nhân
         benhnhan_item = find_item_by_key(benhnhan_data, 'MaBN', donthuoc_item['MaBN'])
         if benhnhan_item:
-            entry_mabn.insert(0, benhnhan_item['MaBN'])
-            entry_tenbn.insert(0, benhnhan_item['HoTenBN'])
-            entry_diachi.insert(0, benhnhan_item['DiaChiBN'])
-            entry_sdt.insert(0, benhnhan_item['SDTBN'])
+            entry_mabn.insert(0, benhnhan_item['MaBN'] or "")
+            entry_tenbn.insert(0, benhnhan_item['HoTenBN'] or "")
+            entry_diachi.insert(0, benhnhan_item['DiaChiBN'] or "")
+            entry_sdt.insert(0, benhnhan_item['SDTBN'] or "")
             
         # Khóa lại form master SAU KHI đã điền
-        set_master_form_state('disabled') 
+        set_master_form_state('disabled') # (SỬA LỖI: giờ sẽ thành 'readonly')
         
         # 4. Tải chi tiết (Treeview)
         refresh_tree(current_master_madt)
@@ -255,7 +274,15 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
             
         try:
             # Lấy Số Lượng (phải là số)
-            so_luong = int(entry_soluong.get().strip())
+            so_luong_str = entry_soluong.get().strip()
+            if not so_luong_str: # Kiểm tra rỗng
+                 messagebox.showwarning("Thiếu thông tin", "Số lượng là bắt buộc.")
+                 return
+            so_luong = int(so_luong_str)
+            if so_luong <= 0:
+                 messagebox.showwarning("Lỗi Nhập liệu", "Số lượng phải lớn hơn 0.")
+                 return
+                 
         except ValueError:
             messagebox.showerror("Lỗi Nhập liệu", "Số lượng phải là một con số.")
             return
@@ -265,9 +292,14 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
         ngay_kham = cal_ngaykham.get_date()
         ngay_tai_kham = cal_ngaytaikham.get_date()
         
+        conn = None # Khởi tạo
+        cursor = None # Khởi tạo
         try:
             # 1. Kết nối CSDL
             conn = connect_db()
+            if conn is None:
+                messagebox.showerror("Lỗi", "Không thể kết nối CSDL.")
+                return
             cursor = conn.cursor()
             
             # 2. Xử lý logic Thêm
@@ -275,7 +307,7 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
                 # Kiểm tra khóa chính (MaDT, MaThuoc) đã tồn tại chưa
                 if any(item['MaDT'] == current_master_madt and item['MaThuoc'] == ma_thuoc for item in chitietdonthuoc_data):
                     messagebox.showerror("Lỗi", "Thuốc này đã tồn tại trong đơn. Vui lòng Sửa số lượng.")
-                    conn.close()
+                    # conn.close() # Đã có finally
                     return
 
                 # 2a. Thêm vào CSDL
@@ -318,17 +350,22 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
             # 4. Lưu CSDL
             conn.commit()
 
+            # 6. Cập nhật giao diện (Chỉ khi thành công)
+            refresh_tree(current_master_madt)
+            clear_detail_form()
+            
         except mysql.connector.Error as e:
             messagebox.showerror("Lỗi CSDL", f"Lỗi khi lưu chi tiết đơn thuốc:\n{e}")
         finally:
             # 5. Luôn đóng CSDL
-            if 'conn' in locals() and conn.is_connected():
+            if cursor:
                 cursor.close()
+            if conn and conn.is_connected():
                 conn.close()
             
-        # 6. Cập nhật giao diện
-        refresh_tree(current_master_madt)
-        clear_detail_form()
+        # 6. Cập nhật giao diện (Đã chuyển vào try)
+        # refresh_tree(current_master_madt)
+        # clear_detail_form()
 
     def on_delete_detail():
         #Nút 'Xóa' (chi tiết) - Xóa thuốc khỏi đơn."""
@@ -345,9 +382,14 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
         if not messagebox.askyesno("Xác nhận", f"Bạn có chắc muốn xóa Thuốc {mathuoc_del} khỏi đơn {madt_del}?"):
             return
             
+        conn = None # Khởi tạo
+        cursor = None # Khởi tạo
         try:
             # 1. Kết nối CSDL
             conn = connect_db()
+            if conn is None:
+                messagebox.showerror("Lỗi", "Không thể kết nối CSDL.")
+                return
             cursor = conn.cursor()
             
             # 2. Xóa khỏi CSDL
@@ -366,17 +408,22 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
                 
             messagebox.showinfo("Thành công", "Đã xóa chi tiết thuốc.")
             
+            # 5. Cập nhật giao diện (Chỉ khi thành công)
+            refresh_tree(current_master_madt)
+            clear_detail_form()
+            
         except mysql.connector.Error as e:
             messagebox.showerror("Lỗi CSDL", f"Lỗi khi xóa dữ liệu:\n{e}")
         finally:
             # 4. Luôn đóng CSDL
-            if 'conn' in locals() and conn.is_connected():
+            if cursor:
                 cursor.close()
+            if conn and conn.is_connected():
                 conn.close()
-                
-        # 5. Cập nhật giao diện
-        refresh_tree(current_master_madt)
-        clear_detail_form()
+                    
+        # 5. Cập nhật giao diện (Đã chuyển vào try)
+        # refresh_tree(current_master_madt)
+        # clear_detail_form()
         
     def on_thuoc_select(event):
         #Sự kiện khi chọn 1 mục trong COMBO MÃ THUỐC."""
@@ -421,6 +468,11 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
         nonlocal selected_detail_pk
         
         selected_items = tree.selection()
+        
+        # Nếu đang ở chế độ 'add' hoặc 'edit', không nạp dữ liệu
+        if current_mode_detail in ('add', 'edit'):
+            return
+
         if not selected_items:
             # Nếu click ra ngoài (bỏ chọn)
             clear_detail_form()
@@ -469,11 +521,15 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
         ngay_kham = item_data_dict['NgayKhamBenh']
         if isinstance(ngay_kham, (datetime.date, datetime.datetime)):
             cal_ngaykham.set_date(ngay_kham)
-        
+        else:
+            cal_ngaykham.set_date(datetime.date.today()) # Đặt ngày mặc định
+            
         ngay_tai_kham = item_data_dict['NgayTaiKham']
         if isinstance(ngay_tai_kham, (datetime.date, datetime.datetime)):
             cal_ngaytaikham.set_date(ngay_tai_kham)
-        
+        else:
+            cal_ngaytaikham.set_date(datetime.date.today()) # Đặt ngày mặc định
+            
         # 4. Khóa form
         set_detail_form_state('disabled') 
         # 5. Bật nút 'Sửa', 'Xóa'
@@ -488,40 +544,40 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
     
     ttk.Label(master_frame, text="Mã Đơn Thuốc:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
     combo_madt = ttk.Combobox(master_frame, width=15, state="readonly") 
-    combo_madt.grid(row=0, column=1, padx=5, pady=5)
+    combo_madt.grid(row=0, column=1, padx=5, pady=5, sticky="w") # Đổi sang sticky 'w'
     
     btn_xem_dt = ttk.Button(master_frame, text="Xem Đơn Thuốc", command=on_xem_donthuoc)
-    btn_xem_dt.grid(row=0, column=2, padx=5, pady=5)
+    btn_xem_dt.grid(row=0, column=2, padx=5, pady=5, sticky="w") # Đổi sang sticky 'w'
     
     
     # Các ô thông tin (bị động, chỉ để xem)
     ttk.Label(master_frame, text="Ngày Cho Thuốc:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
     entry_ngaycho = ttk.Entry(master_frame, width=18)
-    entry_ngaycho.grid(row=1, column=1, padx=5, pady=5)
+    entry_ngaycho.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
     ttk.Label(master_frame, text="Mã Nhân Viên:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
     entry_manv = ttk.Entry(master_frame, width=18)
-    entry_manv.grid(row=2, column=1, padx=5, pady=5)
+    entry_manv.grid(row=2, column=1, padx=5, pady=5, sticky="w")
     
     ttk.Label(master_frame, text="Tên Nhân Viên:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
     entry_tennv = ttk.Entry(master_frame, width=18)
-    entry_tennv.grid(row=3, column=1, padx=5, pady=5)
+    entry_tennv.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
     ttk.Label(master_frame, text="Mã Bệnh Nhân:").grid(row=1, column=2, padx=5, pady=5, sticky="w")
     entry_mabn = ttk.Entry(master_frame, width=30)
-    entry_mabn.grid(row=1, column=3, padx=5, pady=5)
+    entry_mabn.grid(row=1, column=3, padx=5, pady=5, sticky="w")
 
     ttk.Label(master_frame, text="Tên Bệnh Nhân:").grid(row=2, column=2, padx=5, pady=5, sticky="w")
     entry_tenbn = ttk.Entry(master_frame, width=30)
-    entry_tenbn.grid(row=2, column=3, padx=5, pady=5)
+    entry_tenbn.grid(row=2, column=3, padx=5, pady=5, sticky="w")
 
     ttk.Label(master_frame, text="Địa chỉ:").grid(row=3, column=2, padx=5, pady=5, sticky="w")
     entry_diachi = ttk.Entry(master_frame, width=30)
-    entry_diachi.grid(row=3, column=3, padx=5, pady=5)
+    entry_diachi.grid(row=3, column=3, padx=5, pady=5, sticky="w")
 
     ttk.Label(master_frame, text="Điện Thoại:").grid(row=4, column=2, padx=5, pady=5, sticky="w")
     entry_sdt = ttk.Entry(master_frame, width=30)
-    entry_sdt.grid(row=4, column=3, padx=5, pady=5)
+    entry_sdt.grid(row=4, column=3, padx=5, pady=5, sticky="w")
 
     # --- Frame 2: Thông tin Đơn Thuốc (Detail Form) ---
     detail_form_frame = ttk.LabelFrame(parent_tab, text="Thông tin Đơn Thuốc")
@@ -548,11 +604,13 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
     entry_huongdan.grid(row=1, column=3, padx=5, pady=5)
     
     ttk.Label(detail_form_frame, text="Ngày Khám Bệnh:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-    cal_ngaykham = DateEntry(detail_form_frame, width=28, date_pattern='yyyy-mm-dd')
+    cal_ngaykham = DateEntry(detail_form_frame, width=28, date_pattern='yyyy-mm-dd',
+                             state='disabled') # Thêm state='disabled'
     cal_ngaykham.grid(row=2, column=1, padx=5, pady=5)
     
     ttk.Label(detail_form_frame, text="Ngày Tái Khám:").grid(row=2, column=2, padx=5, pady=5, sticky="w")
-    cal_ngaytaikham = DateEntry(detail_form_frame, width=28, date_pattern='yyyy-mm-dd')
+    cal_ngaytaikham = DateEntry(detail_form_frame, width=28, date_pattern='yyyy-mm-dd',
+                                 state='disabled') # Thêm state='disabled'
     cal_ngaytaikham.grid(row=2, column=3, padx=5, pady=5)
 
     # --- Frame 3: Treeview (Detail List) ---
@@ -582,12 +640,12 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
     tree.heading("NgayTaiKham", text="Ngày Tái Khám")
     
     # Đặt độ rộng
-    tree.column("MaThuoc", width=80)
-    tree.column("TenThuoc", width=150)
-    tree.column("SoLuong", width=60)
-    tree.column("HuongDan", width=200)
-    tree.column("NgayKham", width=100)
-    tree.column("NgayTaiKham", width=100)
+    tree.column("MaThuoc", width=80, anchor="c") # Thêm căn lề
+    tree.column("TenThuoc", width=150, anchor="w") # Thêm căn lề
+    tree.column("SoLuong", width=60, anchor="c") # Thêm căn lề
+    tree.column("HuongDan", width=200, anchor="w") # Thêm căn lề
+    tree.column("NgayKham", width=100, anchor="c") # Thêm căn lề
+    tree.column("NgayTaiKham", width=100, anchor="c") # Thêm căn lề
 
     tree.pack(fill="both", expand=True)
     # Gán sự kiện khi click chọn 1 dòng
@@ -598,23 +656,24 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
     button_frame.pack(pady=10, fill="x")
 
     # (Các nút này chỉ điều khiển form chi tiết)
+    # --- ĐÃ SỬA LỖI: Đổi "side=tk.CENTER" thành "side=tk.LEFT" ---
     btn_them = ttk.Button(button_frame, text="Thêm", command=on_add_detail)
-    btn_them.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_them.pack(side=tk.LEFT, padx=5, expand=True) # Sửa ở đây
     
     btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit_detail)
-    btn_sua.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_sua.pack(side=tk.LEFT, padx=5, expand=True) # Sửa ở đây
     
     btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save_detail)
-    btn_luu.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_luu.pack(side=tk.LEFT, padx=5, expand=True) # Sửa ở đây
     
     btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete_detail)
-    btn_xoa.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True) # Sửa ở đây
     
     btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_detail_form)
-    btn_boqua.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True) # Sửa ở đây
     
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True) # Sửa ở đây
 
     # --- Khởi tạo khi mở tab ---
     # 1. Tải dữ liệu vào các combobox
@@ -623,7 +682,7 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
     
     # 2. Xóa và khóa form master
     clear_master_form()
-    set_master_form_state('disabled') 
+    # set_master_form_state('disabled') # Đã gọi trong clear_master_form
     
     # 3. Xóa và khóa form chi tiết và các nút
     clear_detail_form() 

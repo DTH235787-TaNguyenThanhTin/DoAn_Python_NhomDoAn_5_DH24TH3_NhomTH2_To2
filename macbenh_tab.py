@@ -184,7 +184,7 @@ def create_view(parent_tab, data_list):
             cursor = conn.cursor()
             
             # 4. Xử lý Ràng buộc khóa ngoại: 
-            #    Kiểm tra xem có Bệnh nhân nào mắc bệnh này không
+            # 	  Kiểm tra xem có Bệnh nhân nào mắc bệnh này không
             sql_check = "SELECT COUNT(*) FROM benhnhan WHERE MaBenh = %s"
             cursor.execute(sql_check, (selected_item_id,))
             count = cursor.fetchone()[0] # Lấy số lượng
@@ -192,6 +192,9 @@ def create_view(parent_tab, data_list):
             if count > 0:
                 # Nếu có, không cho xóa và thông báo
                 messagebox.showerror("Lỗi", f"Không thể xóa Bệnh này. Đang có {count} bệnh nhân mắc bệnh này.")
+                # ===== CHÚ Ý: Bạn nên đóng kết nối ở đây nếu return =====
+                conn.close() 
+                # =======================================================
                 return
 
             # 5. Nếu không có ràng buộc, tiến hành Xóa
@@ -219,7 +222,7 @@ def create_view(parent_tab, data_list):
             if 'conn' in locals() and conn.is_connected():
                 cursor.close()
                 conn.close()
-                
+                    
         # 7. Cập nhật giao diện
         refresh_tree()
         clear_entries()
@@ -303,26 +306,28 @@ def create_view(parent_tab, data_list):
     button_frame = tk.Frame(parent_tab)
     button_frame.pack(pady=10, fill="x")
 
+    # ===== SỬA LỖI TẠI ĐÂY (Lỗi side) =====
     # Các nút chức năng
     # expand=True để các nút tự chia đều không gian
+    # Sử dụng side=tk.LEFT thay vì tk.CENTER
     btn_them = ttk.Button(button_frame, text="Thêm", command=on_add)
-    btn_them.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_them.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit)
-    btn_sua.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_sua.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save)
-    btn_luu.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_luu.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete)
-    btn_xoa.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_entries)
-    btn_boqua.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     # Nút Thoát: winfo_toplevel().destroy() để đóng toàn bộ cửa sổ chính
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
 
     # --- Khởi tạo ---
     # 1. Tải dữ liệu từ cache lên Treeview khi mở tab

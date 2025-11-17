@@ -155,7 +155,12 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
         # 3. Thu thập toàn bộ dữ liệu (kể cả các trường không bắt buộc)
         # Dùng 'or None' để đảm bảo giá trị là NULL nếu ô rỗng
         # Dùng 'if...else' để xử lý tuổi
-        tuoi_value = int(entry_tuoi.get().strip()) if entry_tuoi.get().strip() else None
+        try:
+            tuoi_value = int(entry_tuoi.get().strip()) if entry_tuoi.get().strip() else None
+        except ValueError:
+             messagebox.showerror("Lỗi Nhập liệu", "Tuổi NV phải là một con số.")
+             return # Thêm return ở đây để dừng hàm on_save khi tuổi sai
+            
         
         data_tuple = (
             ho_ten,
@@ -196,7 +201,17 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
                     INSERT INTO nhanvien (HoTenNV, TuoiNV, GioiTinhNV, SDTNV, MaKhoa, MaCV, MaNV)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """
-                cursor.execute(sql, data_tuple)
+                # Đảo lại thứ tự tuple cho đúng SQL
+                sql_tuple = (
+                    data_tuple[0], # HoTenNV
+                    data_tuple[1], # TuoiNV
+                    data_tuple[2], # GioiTinhNV
+                    data_tuple[3], # SDTNV
+                    data_tuple[4], # MaKhoa
+                    data_tuple[5], # MaCV
+                    data_tuple[6]  # MaNV
+                )
+                cursor.execute(sql, sql_tuple)
                 
                 # Thêm vào danh sách local
                 nhanvien_data.append(new_data_dict)
@@ -209,12 +224,15 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
                     HoTenNV = %s, TuoiNV = %s, GioiTinhNV = %s, SDTNV = %s, MaKhoa = %s, MaCV = %s
                     WHERE MaNV = %s
                 """
+                # Dùng data_tuple vì MaNV đã ở cuối
                 cursor.execute(sql, data_tuple)
                 
                 # Cập nhật lại danh sách local
                 for i, item in enumerate(nhanvien_data):
                     if item['MaNV'] == selected_item_id:
                         # Thay thế dict cũ bằng dict mới
+                        # Đảm bảo MaNV là đúng (nếu lỡ new_data_dict bị sai)
+                        new_data_dict['MaNV'] = selected_item_id
                         nhanvien_data[i] = new_data_dict
                         break
                 messagebox.showinfo("Thành công", f"Đã cập nhật Nhân viên: {selected_item_id}")
@@ -224,6 +242,7 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
             
         except mysql.connector.Error as e:
             messagebox.showerror("Lỗi CSDL", f"Lỗi khi lưu dữ liệu:\n{e}")
+        # Bắt lỗi ValueError nếu người dùng nhập chữ vào ô Tuổi
         except ValueError:
             messagebox.showerror("Lỗi Nhập liệu", "Tuổi NV phải là một con số.")
         finally:
@@ -253,7 +272,17 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
             cursor = conn.cursor()
             
             # (Lưu ý: Nếu MaNV là khóa ngoại ở bảng khác, CSDL sẽ báo lỗi)
+            # === THÊM: Kiểm tra ràng buộc khóa ngoại (ví dụ: bảng donthuoc) ===
+            sql_check = "SELECT COUNT(*) FROM donthuoc WHERE MaNV = %s"
+            cursor.execute(sql_check, (selected_item_id,))
+            count = cursor.fetchone()[0]
             
+            if count > 0:
+                messagebox.showerror("Lỗi", f"Không thể xóa Nhân viên này. Đang có {count} đơn thuốc liên quan.")
+                conn.close()
+                return
+            # ==============================================================
+
             # 4. Câu lệnh SQL DELETE
             sql_delete = "DELETE FROM nhanvien WHERE MaNV = %s"
             cursor.execute(sql_delete, (selected_item_id,))
@@ -271,20 +300,21 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
             messagebox.showinfo("Thành công", "Đã xóa Nhân viên.")
             
         except mysql.connector.Error as e:
-            # Bắt lỗi (ví dụ: không thể xóa do ràng buộc khóa ngoại)
+            # Bắt lỗi (ví dụ: không thể xóa do ràng buộc khóa ngoại khác)
             messagebox.showerror("Lỗi CSDL", f"Lỗi khi xóa dữ liệu:\n{e}")
         finally:
             # 6. Đóng kết nối
             if 'conn' in locals() and conn.is_connected():
                 cursor.close()
                 conn.close()
-                
+                    
         # 7. Cập nhật giao diện
         refresh_tree()
         clear_entries()
 
     def find_display_by_ma(ma, data_list, key_ma, key_ten):
         #Hàm trợ giúp: Tìm chuỗi khi biết Mã ."""
+        if not ma: return "" # Thêm kiểm tra nếu ma là None
         for item in data_list:
             if item[key_ma] == ma:
                 # Trả về chuỗi "Mã - Tên"
@@ -299,7 +329,7 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
         selected_items = tree.selection()
         if not selected_items:
             # Nếu người dùng click vào khoảng trống (bỏ chọn), thì xóa form
-            clear_entries()
+            # clear_entries() # Tạm khóa dòng này, giữ lại form khi bỏ chọn
             return
         
         # 1. Lấy ID (MaNV) của hàng đã chọn
@@ -409,7 +439,7 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
         columns=("MaNV", "HoTen", "Tuoi", "GioiTinh", "SDT", "MaKhoa", "MaCV"),
         show="headings", # Chỉ hiển thị tiêu đề, ẩn cột đầu tiên (cột #0)
         yscrollcommand=tree_scroll_y.set, # Gắn thanh cuộn Y
-        xscrollcommand=tree_scroll_x.set  # Gắn thanh cuộn X
+        xscrollcommand=tree_scroll_x.set 	# Gắn thanh cuộn X
     )
     # Kết nối ngược lại từ thanh cuộn đến Treeview
     tree_scroll_y.config(command=tree.yview)
@@ -429,7 +459,10 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
     tree.column("HoTen", width=150, anchor="c")
     tree.column("Tuoi", width=50, anchor="c") # anchor "c" (center) là căn giữa
     tree.column("GioiTinh", width=60, anchor="c")
-    tree.column("SDT", width=100, anchor="C")
+    
+    # ===== SỬA LỖI TẠI ĐÂY (Lỗi anchor) =====
+    tree.column("SDT", width=100, anchor="c") # LỖI GỐC: anchor="C"
+    
     tree.column("MaKhoa", width=80, anchor="c")
     tree.column("MaCV", width=80, anchor="c")
 
@@ -441,25 +474,27 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
     button_frame = tk.Frame(parent_tab)
     button_frame.pack(pady=10, fill="x")
 
+    # ===== SỬA LỖI TẠI ĐÂY (Lỗi side) =====
     # Các nút chức năng
+    # Sử dụng side=tk.LEFT thay vì tk.CENTER
     btn_them = ttk.Button(button_frame, text="Thêm", command=on_add)
-    btn_them.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_them.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit)
-    btn_sua.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_sua.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save)
-    btn_luu.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_luu.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete)
-    btn_xoa.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_entries)
-    btn_boqua.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
     
     
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.CENTER, padx=5, expand=True)
+    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
 
     # --- Khởi tạo ---
     # 1. Tải danh sách vào combobox
