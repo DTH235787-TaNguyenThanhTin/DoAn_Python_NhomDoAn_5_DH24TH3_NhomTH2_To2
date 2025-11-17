@@ -252,9 +252,9 @@ class ShapeButton(tk.Frame):
 
 def open_main_window():
 
-    # --- ĐỊNH NGHĨA MÀU SẮC CHO NÚT SIDEBAR ---
-    btn_bg_color = "#3498DB"      # Màu xanh dương
-    btn_hover_color = "#2980B9"   # Màu xanh dương đậm hơn
+    # --- ĐỊNH NGHĨA MÀU SẮC CHO NÚT SIDEBAR(chinh mau nut) ---
+    btn_bg_color = "#16C92E"      # Màu xanh  
+    btn_hover_color = "#083307"   # Màu xanh đậm khi hover
     # --- END FIX ---
     
     # --- 1. CÀI ĐẶT CỬA SỔ CHÍNH ---
@@ -268,9 +268,9 @@ def open_main_window():
     root.resizable(True, True)
     
     main_bg = "white"
-    sidebar_bg = "#EAF2F8"
+    sidebar_bg = "#1287E0"
     root.config(bg=main_bg)
-    sidebar_text_color = "#343a40"
+    sidebar_text_color = "#0e355c"
 
     # ===== TẢI DỮ LIỆU TỪ MYSQL LÊN "CACHE" (ĐÃ KHÔI PHỤC) =====
     # Khởi tạo tất cả các danh sách
@@ -418,11 +418,11 @@ def open_main_window():
             radius=15 # Đặt bán kính bo góc
         )
         btn.pack(fill="x", pady=4, padx=10)
-
+    # --- NÚT ĐĂNG XUẤT Ở CUỐI SIDEBAR(chinh mau nut) ---
     logout_btn = ShapeButton(
         frame_sidebar, text="Đăng xuất", command=on_logout,
         width=btn_width, height=btn_height,
-        bg_color="#E74C3C", hover_color="#C0392B", # Màu đỏ cho nút đăng xuất
+        bg_color="#3D140F", hover_color="#4D1610", # Màu đỏ cho nút đăng xuất
         radius=15
     )
     logout_btn.pack(side="bottom", fill="x", pady=20, padx=10)
