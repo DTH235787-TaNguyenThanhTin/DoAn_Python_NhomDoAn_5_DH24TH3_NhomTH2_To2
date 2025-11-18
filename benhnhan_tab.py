@@ -424,6 +424,8 @@ def create_view(parent_tab, benhnhan_data, macbenh_data):
     
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
     btn_thoat.pack(side=tk.LEFT, padx=5, expand=True)
+    
+    
 
     # --- Khởi tạo khi mở tab ---
     update_mabenh_combobox() 
