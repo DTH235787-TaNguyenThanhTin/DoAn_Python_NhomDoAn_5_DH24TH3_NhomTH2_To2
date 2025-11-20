@@ -9,7 +9,7 @@ import mysql.connector
 
 def create_view(parent_tab, benhnhan_data, macbenh_data):
     #Tạo giao diện cho tab Quản lý Bệnh nhân Sử dụng benhnhan_data và macbenh_data (để làm combobox)
-    # --- Biến nội bộ ---
+    # --- Biến nội bộ ----
     current_mode = None 
     selected_item_id = None 
     # === THAY ĐỔI: Quay lại dùng BooleanVar cho checkbox ===

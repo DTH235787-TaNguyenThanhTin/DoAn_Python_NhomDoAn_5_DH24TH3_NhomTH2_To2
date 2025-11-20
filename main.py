@@ -251,7 +251,7 @@ def open_main_window():
         conn = connect_db()
         cursor = conn.cursor(dictionary=True) 
         
-        # Tải dữ liệu các bảng liên quan
+        # Tải dữ liệu các bảng liên quan-
         cursor.execute("SELECT * FROM khoa")
         khoa_data.extend(cursor.fetchall())
         
@@ -288,7 +288,7 @@ def open_main_window():
         return
     # ==========================================
 
-    # --- 2. TẠO CÁC FRAME CHÍNH (Giữ nguyên) ---
+    # --- 2. TẠO CÁC FRAME CHÍNH (Giữ nguyên) ----
     frame_sidebar = tk.Frame(root, relief=tk.RIDGE, bd=2, padx=10, pady=10, bg=sidebar_bg)
     frame_sidebar.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
     frame_sidebar.config(width=220)

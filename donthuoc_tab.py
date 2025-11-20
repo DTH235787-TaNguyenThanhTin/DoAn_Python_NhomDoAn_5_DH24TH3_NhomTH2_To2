@@ -10,7 +10,7 @@ import mysql.connector
 def create_view(parent_tab, donthuoc_data, benhnhan_data, nhanvien_data):
     #Tạo giao diện cho tab Quản lý Đơn thuốc.Sử dụng 4 danh sách dữ liệu (cache)"""
     
-    # --- Biến nội bộ ---
+    # --- Biến nội bộ ----
     # Biến lưu trạng thái: 'add' (đang thêm) hoặc 'edit' (đang sửa)
     current_mode = None
     # Biến lưu Mã ĐT (khóa chính) của mục đang được chọn

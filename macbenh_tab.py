@@ -14,7 +14,7 @@ def create_view(parent_tab, data_list):
     # Biến lưu Mã Bệnh (khóa chính) của mục đang được chọn
     selected_item_id = None
 
-    # --- Các hàm xử lý (nội bộ) ---
+    # --- Các hàm xử lý (nội bộ) ----
     def refresh_tree():
         #Làm mới Treeview với dữ liệu từ data_list (cache)."""
         # Xóa tất cả các hàng hiện có trong Treeview

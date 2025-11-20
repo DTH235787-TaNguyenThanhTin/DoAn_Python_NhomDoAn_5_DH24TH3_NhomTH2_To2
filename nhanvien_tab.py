@@ -15,7 +15,7 @@ def create_view(parent_tab, nhanvien_data, khoa_data, chucvu_data):
     # Biến True/False của Tkinter, liên kết với checkbox Giới tính
     var_is_male = tk.BooleanVar(value=False) # Mặc định là Nữ (không tích)
 
-    # --- Hàm xử lý ComboBox ---
+    # --- Hàm xử lý ComboBox ----
     def update_comboboxes():
         #Cập nhật danh sách cho 2 combobox Khoa và Chức vụ.
         # Tạo danh sách hiển thị .

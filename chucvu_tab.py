@@ -327,7 +327,7 @@ def create_view(parent_tab, data_list):
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
     btn_thoat.pack(side=tk.LEFT, padx=5, expand=True) # LỖI GỐC: side=tk.CENTER
 
-    # --- Khởi tạo ---
+    # --- Khởi tạo ----
     # 1. Tải dữ liệu từ cache lên Treeview khi mở tab
     refresh_tree()
     # 2. Xóa form và đặt trạng thái ban đầu

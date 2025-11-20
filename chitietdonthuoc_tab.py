@@ -613,7 +613,7 @@ def create_view(parent_tab, chitietdonthuoc_data, donthuoc_data, thuoc_data, ben
                                  state='disabled') # Thêm state='disabled'
     cal_ngaytaikham.grid(row=2, column=3, padx=5, pady=5)
 
-    # --- Frame 3: Treeview (Detail List) ---
+    # --- Frame 3: Treeview (Detail List) ----
     tree_frame = ttk.Frame(parent_tab)
     tree_frame.pack(fill="both", expand=True, padx=10, pady=10)
     

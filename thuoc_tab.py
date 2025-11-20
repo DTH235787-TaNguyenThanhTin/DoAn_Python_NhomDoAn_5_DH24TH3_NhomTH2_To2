@@ -8,7 +8,7 @@ import mysql.connector
 def create_view(parent_tab, data_list):
     #Tạo giao diện cho tab Quản lý Thuốc.data_list là một list "cache" được chia sẻ từ file main."""
     
-    # --- Biến nội bộ ---
+    # --- Biến nội bộ ----
     # Biến lưu trạng thái: 'add' (đang thêm) hoặc 'edit' (đang sửa)
     current_mode = None 
     # Biến lưu Mã Thuốc (khóa chính) của mục đang được chọn

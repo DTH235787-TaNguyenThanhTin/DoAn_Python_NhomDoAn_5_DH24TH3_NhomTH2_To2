@@ -11,7 +11,7 @@ def connect_db():
         password="123456",       # thay bằng mật khẩu của bạn
         database="quanlybenhnhan"
     )
-# ====== Hàm canh giữa cửa sổ ====== 
+# ====== Hàm canh giữa cửa sổ ====== =
 def center_window(win, w=700, h=500): 
     ws = win.winfo_screenwidth() 
     hs = win.winfo_screenheight() 
