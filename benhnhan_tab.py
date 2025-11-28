@@ -12,7 +12,6 @@ def create_view(parent_tab, benhnhan_data, macbenh_data):
     # --- Biến nội bộ ----
     current_mode = None 
     selected_item_id = None 
-    # === THAY ĐỔI: Quay lại dùng BooleanVar cho checkbox ===
     # Biến đặc biệt của Tkinter để theo dõi trạng thái (True/False) của checkbox
     # Mặc định là False (Nữ)
     var_is_male = tk.BooleanVar(value=False) 
@@ -60,9 +59,8 @@ def create_view(parent_tab, benhnhan_data, macbenh_data):
         
         widget_state = 'normal' if other_state == 'normal' else 'disabled'
         
-        # === THAY ĐỔI: Áp dụng cho Checkbox Giới tính ===
+        # Áp dụng cho Checkbox Giới tính
         chk_gioitinh.config(state=widget_state)
-        # ===============================================
         
         combo_mabenh.config(state='readonly' if widget_state == 'normal' else 'disabled')
         cal_ngaysinh.config(state=widget_state)
@@ -89,9 +87,8 @@ def create_view(parent_tab, benhnhan_data, macbenh_data):
         entry_sdt.delete(0, tk.END)
         entry_diachi.delete(0, tk.END)
         
-        # === THAY ĐỔI: Reset Checkbox ===
+        # Reset Checkbox
         var_is_male.set(False) # Đặt về Nữ (bỏ tích)
-        # ==================================
         
         combo_mabenh.set("")
         cal_ngaysinh.set_date(datetime.date.today()) 
@@ -138,10 +135,8 @@ def create_view(parent_tab, benhnhan_data, macbenh_data):
         sdt = entry_sdt.get().strip()
         diachi = entry_diachi.get().strip()
         
-        # === THAY ĐỔI: Lấy giá trị từ Checkbox ===
-        # var_is_male.get() trả về True nếu được tích, False nếu không
+        # Lấy giá trị từ Checkbox
         gioitinh = "Nam" if var_is_male.get() else "Nữ"
-        # ==========================================
         
         # Kiểm tra dữ liệu (giới tính luôn có giá trị 'Nam' hoặc 'Nữ' nên không cần kiểm tra)
         if not all([ma_bn, ho_ten, tuoi_str, sdt, diachi]):
@@ -288,11 +283,8 @@ def create_view(parent_tab, benhnhan_data, macbenh_data):
         entry_sdt.insert(0, item_data_dict['SDTBN'])
         entry_diachi.insert(0, item_data_dict['DiaChiBN'])
         
-        # === THAY ĐỔI: Đặt giá trị Checkbox ===
-        # Nếu 'GioiTinhBN' trong dữ liệu là "Nam" -> .set(True) (tích)
-        # Nếu là "Nữ" (hoặc khác) -> .set(False) (bỏ tích)
+        # Đặt giá trị Checkbox
         var_is_male.set(item_data_dict['GioiTinhBN'] == "Nam")
-        # =======================================
         
         ngay_sinh = item_data_dict['NgaySinh']
         if isinstance(ngay_sinh, (datetime.date, datetime.datetime)):
@@ -338,7 +330,6 @@ def create_view(parent_tab, benhnhan_data, macbenh_data):
         offvalue=False        # Giá trị khi không tích
     )
     chk_gioitinh.grid(row=2, column=1, padx=5, pady=5, sticky="w") # sticky="w" để căn trái
-    # ===============================================
 
     ttk.Label(form_frame, text="Tuổi:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
     entry_tuoi = ttk.Entry(form_frame, width=30)
@@ -407,23 +398,24 @@ def create_view(parent_tab, benhnhan_data, macbenh_data):
     button_frame = tk.Frame(parent_tab)
     button_frame.pack(pady=10, fill="x")
 
+    # ===== SỬA LỖI BỐ CỤC: Đổi side=tk.CENTER thành side=tk.LEFT =====
     btn_them = ttk.Button(button_frame, text="Thêm", command=on_add)
-    btn_them.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_them.pack(side=tk.LEFT, padx=5, expand=True) # ĐÃ SỬA
     
     btn_sua = ttk.Button(button_frame, text="Sửa", command=on_edit)
-    btn_sua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_sua.pack(side=tk.LEFT, padx=5, expand=True) # ĐÃ SỬA
     
     btn_luu = ttk.Button(button_frame, text="Lưu", command=on_save)
-    btn_luu.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_luu.pack(side=tk.LEFT, padx=5, expand=True) # ĐÃ SỬA
     
     btn_xoa = ttk.Button(button_frame, text="Xóa", command=on_delete)
-    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_xoa.pack(side=tk.LEFT, padx=5, expand=True) # ĐÃ SỬA
     
     btn_boqua = ttk.Button(button_frame, text="Bỏ qua", command=clear_entries)
-    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_boqua.pack(side=tk.LEFT, padx=5, expand=True) # ĐÃ SỬA
     
     btn_thoat = ttk.Button(button_frame, text="Thoát", command=parent_tab.winfo_toplevel().destroy)
-    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True)
+    btn_thoat.pack(side=tk.LEFT, padx=5, expand=True) # ĐÃ SỬA
     
     
 

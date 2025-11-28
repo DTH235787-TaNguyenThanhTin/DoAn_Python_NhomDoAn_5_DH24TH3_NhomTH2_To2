@@ -85,3 +85,19 @@ CREATE TABLE chitietdonthuoc (
 -- Thêm khóa ngoại cho Bệnh Nhân - Mã Bệnh
 ALTER TABLE benhnhan
 ADD CONSTRAINT FK_BenhNhan_MacBenh FOREIGN KEY (MaBenh) REFERENCES macbenh(MaBenh);
+CREATE TABLE chitietbenhnhan (
+    MaCTBN INT NOT NULL PRIMARY KEY AUTO_INCREMENT, -- Khóa chính tự tăng (Được code Python dùng)
+    MaBN VARCHAR(10) NOT NULL,
+    MaBenh VARCHAR(10) NOT NULL,
+    MaNV VARCHAR(10) NOT NULL, -- Bác sĩ/Nhân viên khám (Được code Python dùng)
+    NgayKham DATE NOT NULL,
+    ChanDoan NVARCHAR(255) NULL,
+    KetQua NVARCHAR(255) NULL,
+    
+    -- Khóa ngoại liên kết với Bệnh nhân
+    CONSTRAINT FK_CTBN_BenhNhan FOREIGN KEY (MaBN) REFERENCES benhnhan(MaBN) ON DELETE CASCADE,
+    -- Khóa ngoại liên kết với Mã Bệnh
+    CONSTRAINT FK_CTBN_MacBenh FOREIGN KEY (MaBenh) REFERENCES macbenh(MaBenh),
+    -- Khóa ngoại liên kết với Bác sĩ (Nhân viên)
+    CONSTRAINT FK_CTBN_NhanVien FOREIGN KEY (MaNV) REFERENCES nhanvien(MaNV)
+);

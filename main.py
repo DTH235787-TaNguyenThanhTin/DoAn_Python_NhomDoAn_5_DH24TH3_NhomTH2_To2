@@ -21,6 +21,7 @@ try:
     import thuoc_tab
     import donthuoc_tab
     import chitietdonthuoc_tab
+    import chitietbenhnhan_tab
 except ImportError as e:
     messagebox.showerror("Lỗi Import", f"Không thể import một module cần thiết.\nLỗi: {e}")
     # Nếu chạy trong môi trường có thể dừng, bạn nên dùng exit()
@@ -246,6 +247,9 @@ def open_main_window():
     thuoc_data = []
     donthuoc_data = []
     chitietdonthuoc_data = []
+    chitietbenhnhan_data = []
+
+     # Kết nối và tải dữ liệu từ CSDL MySQL
     
     try:
         conn = connect_db()
@@ -276,6 +280,9 @@ def open_main_window():
         
         cursor.execute("SELECT * FROM chitietdonthuoc") 
         chitietdonthuoc_data.extend(cursor.fetchall())
+
+        cursor.execute("SELECT * FROM chitietbenhnhan") 
+        chitietbenhnhan_data.extend(cursor.fetchall())
         
         
         cursor.close()
@@ -410,6 +417,15 @@ def open_main_window():
             benhnhan_data, 
             nhanvien_data
         )
+    def show_chitietbenhnhan_view():
+        clear_main_frame()
+        chitietbenhnhan_tab.create_view(
+            main_frame, 
+            chitietbenhnhan_data, 
+            benhnhan_data, 
+            macbenh_data,
+            nhanvien_data
+        )
 
     # --- 5. TẠO CÁC NÚT CHO SIDEBAR (Giữ nguyên logic) ---
     tk.Label(frame_sidebar, text="Menu Quản lý",
@@ -425,7 +441,8 @@ def open_main_window():
         ("Hồ sơ Mắc bệnh", show_macbenh_view),
         ("Quản lý Thuốc", show_thuoc_view),
         ("Quản lý Đơn thuốc", show_donthuoc_view),
-        ("Chi tiết Đơn thuốc", show_chitietdonthuoc_view)
+        ("Chi tiết Đơn thuốc", show_chitietdonthuoc_view),
+        ("Chi tiết Bệnh nhân", show_chitietbenhnhan_view)
     ]
     btn_width = 180
     btn_height = 40
